@@ -1,4 +1,8 @@
 {
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://zloikqwodnmnfkdmplkw.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_zpoNfKCFUaC6K6Zf0nRsEA_O9rFJLJv"
+  },
   "crons": [
     { "path": "/api/jobs/sync-bacen", "schedule": "0 6 * * *" },
     { "path": "/api/jobs/sync-ibge", "schedule": "0 6 1 * *" },
