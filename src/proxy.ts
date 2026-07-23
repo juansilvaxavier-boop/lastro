@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./lib/supabase/config";
 
-const ROTAS_PUBLICAS = ["/login", "/auth/callback"];
+const ROTAS_PUBLICAS = ["/login", "/auth/callback", "/admin/login"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -31,7 +31,7 @@ export async function proxy(request: NextRequest) {
 
   if (!user && !rotaPublica) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = request.nextUrl.pathname.startsWith("/admin") ? "/admin/login" : "/login";
     return NextResponse.redirect(url);
   }
 

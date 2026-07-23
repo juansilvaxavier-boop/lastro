@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer components {
+  .input {
+    @apply rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none;
+  }
+}

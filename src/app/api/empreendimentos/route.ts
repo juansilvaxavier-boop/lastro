@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { empreendimentoSchema } from "@/lib/validation";
 import { recalcularScoresEempreendimento } from "@/lib/pipeline";
+import { exigirAdmin } from "@/lib/admin";
 
 export async function GET() {
   const supabase = await createClient();
@@ -23,10 +24,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+  const naoAutorizado = await exigirAdmin(supabase);
+  if (naoAutorizado) return naoAutorizado;
 
   const body = await request.json();
   const parsed = empreendimentoSchema.safeParse(body);

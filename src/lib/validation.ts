@@ -39,4 +39,17 @@ export const empreendimentoSchema = z.object({
   valorCondominio: z.number().min(0).optional(),
   iptuAnual: z.number().min(0).optional(),
   aluguelEstimado: z.number().min(0).optional(),
+  ativo: z.boolean().optional(),
+});
+
+export const bairroSchema = z.object({
+  nome: z.string().min(1),
+  cidade: z.string().min(1).optional(),
+  estado: z.string().min(2).max(2).optional(),
+  populacao: z.number().int().min(0).optional(),
+  densidadeDemografica: z.number().min(0).optional(),
+  rendaMedia: z.number().min(0).optional(),
+  zoneamento: z.string().optional(),
+  planoDiretorUrl: z.string().url().optional(),
+  ultimaRevisaoManual: z.string().optional(),
 });
