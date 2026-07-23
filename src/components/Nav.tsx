@@ -4,6 +4,8 @@ import { SignOutButton } from "@/components/SignOutButton";
 
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard/mapa-calor", label: "Mapa de calor" },
+  { href: "/dashboard/comparar", label: "Comparar" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/alertas", label: "Alertas" },
 ];

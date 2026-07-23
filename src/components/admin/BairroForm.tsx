@@ -14,6 +14,7 @@ interface BairroInicial {
   zoneamento: string;
   planoDiretorUrl: string;
   ultimaRevisaoManual: string;
+  empregabilidadeRegional: string;
 }
 
 const VAZIO: BairroInicial = {
@@ -26,6 +27,7 @@ const VAZIO: BairroInicial = {
   zoneamento: "",
   planoDiretorUrl: "",
   ultimaRevisaoManual: "",
+  empregabilidadeRegional: "",
 };
 
 function paraNumero(v: string): number | undefined {
@@ -61,6 +63,7 @@ export function BairroForm({ inicial }: { inicial?: BairroInicial }) {
       zoneamento: form.zoneamento || undefined,
       planoDiretorUrl: form.planoDiretorUrl || undefined,
       ultimaRevisaoManual: form.ultimaRevisaoManual || undefined,
+      empregabilidadeRegional: form.empregabilidadeRegional || undefined,
     };
 
     const res = await fetch(editando ? `/api/admin/bairros/${inicial!.id}` : "/api/admin/bairros", {
@@ -122,6 +125,14 @@ export function BairroForm({ inicial }: { inicial?: BairroInicial }) {
             type="date"
             value={form.ultimaRevisaoManual}
             onChange={(e) => set("ultimaRevisaoManual", e.target.value)}
+            className="input"
+          />
+        </Campo>
+        <Campo label="Empregabilidade regional (CAGED)">
+          <input
+            value={form.empregabilidadeRegional}
+            onChange={(e) => set("empregabilidadeRegional", e.target.value)}
+            placeholder="Ex: saldo de +320 empregos formais em 2026 (CAGED, dado manual)"
             className="input"
           />
         </Campo>

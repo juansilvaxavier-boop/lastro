@@ -85,6 +85,7 @@ export type Database = {
           cidade: string
           created_at: string
           densidade_demografica: number | null
+          empregabilidade_regional: string | null
           estado: string
           id: string
           nome: string
@@ -99,6 +100,7 @@ export type Database = {
           cidade?: string
           created_at?: string
           densidade_demografica?: number | null
+          empregabilidade_regional?: string | null
           estado?: string
           id?: string
           nome: string
@@ -113,6 +115,7 @@ export type Database = {
           cidade?: string
           created_at?: string
           densidade_demografica?: number | null
+          empregabilidade_regional?: string | null
           estado?: string
           id?: string
           nome?: string
@@ -418,6 +421,7 @@ export type Database = {
       }
       perfis: {
         Row: {
+          capital_disponivel: number | null
           created_at: string
           id: string
           liquidez: string
@@ -431,6 +435,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          capital_disponivel?: number | null
           created_at?: string
           id?: string
           liquidez: string
@@ -444,6 +449,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          capital_disponivel?: number | null
           created_at?: string
           id?: string
           liquidez?: string

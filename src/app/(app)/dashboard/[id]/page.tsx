@@ -5,6 +5,8 @@ import { ScoreBadge } from "@/components/ScoreBadge";
 import { Termo } from "@/components/Termo";
 import { FinanciamentoSimulador } from "@/components/FinanciamentoSimulador";
 import { WatchlistButtons } from "@/components/WatchlistButtons";
+import { ComparacaoHonesta } from "@/components/ComparacaoHonesta";
+import { RadarPerfilScore } from "@/components/RadarPerfilScore";
 
 const moeda = (v: number | null) =>
   v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -34,6 +36,43 @@ export default async function EmpreendimentoPage({ params }: PageProps<"/dashboa
 
   const cenariosPorTipo = new Map((cenarios ?? []).map((c) => [c.tipo, c]));
   const seloConfianca = calibracao?.[0]?.selo_confianca ?? null;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: perfil }, { data: cdiRow }] = await Promise.all([
+    user
+      ? supabase.from("perfis").select("id").eq("user_id", user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("macro_dados")
+      .select("valor")
+      .eq("indicador", "cdi")
+      .order("data_referencia", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const { data: match } = perfil
+    ? await supabase.from("matches").select("*").eq("perfil_id", perfil.id).eq("empreendimento_id", id).maybeSingle()
+    : { data: null };
+
+  const detalhesScore = score?.detalhes as
+    | { renda?: { yieldLiquidoAnual?: number | null } }
+    | null
+    | undefined;
+  const yieldLiquidoAnual = detalhesScore?.renda?.yieldLiquidoAnual ?? null;
+
+  const cenarioBase = cenariosPorTipo.get("base");
+  const valorizacaoBaseAnualPct = cenarioBase
+    ? Math.pow(1 + Number(cenarioBase.valorizacao_projetada_pct) / 100, 1 / 3) - 1
+    : null;
+
+  const detalhesMatch = match?.detalhes as
+    | { detalhes?: { penalidadeLiquidez?: number; penalidadeRisco?: number; penalidadeOrcamento?: number } }
+    | null
+    | undefined;
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,6 +130,29 @@ export default async function EmpreendimentoPage({ params }: PageProps<"/dashboa
           })}
         </div>
       </section>
+
+      {match && (
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="mb-1 text-base font-semibold text-slate-900">Radar perfil × score</h2>
+          <p className="mb-2 text-xs text-slate-500">Como este imóvel se encaixa em cada dimensão do seu perfil.</p>
+          <RadarPerfilScore
+            scoreValorizacao={score ? Number(score.score_valorizacao) : 0}
+            scoreRenda={score ? Number(score.score_renda) : 0}
+            penalidadeLiquidez={detalhesMatch?.detalhes?.penalidadeLiquidez ?? 0}
+            penalidadeRisco={detalhesMatch?.detalhes?.penalidadeRisco ?? 0}
+            penalidadeOrcamento={detalhesMatch?.detalhes?.penalidadeOrcamento ?? 0}
+            scoreEncaixe={Number(match.score_encaixe)}
+          />
+        </section>
+      )}
+
+      <ComparacaoHonesta
+        tipoEmpreendimento={emp.tipo}
+        yieldLiquidoAnual={yieldLiquidoAnual}
+        valorizacaoBaseAnualPct={valorizacaoBaseAnualPct}
+        cdiAnual={cdiRow ? Number(cdiRow.valor) : null}
+        fiiRendimentoAnual={null}
+      />
 
       <section>
         <FinanciamentoSimulador empreendimentoId={id} preco={Number(emp.preco)} />

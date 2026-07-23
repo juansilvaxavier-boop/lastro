@@ -25,6 +25,7 @@ export default async function EditarBairroPage({ params }: PageProps<"/admin/bai
           zoneamento: bairro.zoneamento ?? "",
           planoDiretorUrl: bairro.plano_diretor_url ?? "",
           ultimaRevisaoManual: bairro.ultima_revisao_manual ?? "",
+          empregabilidadeRegional: bairro.empregabilidade_regional ?? "",
         }}
       />
     </div>

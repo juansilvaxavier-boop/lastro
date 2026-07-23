@@ -6,6 +6,7 @@ export const perfilSchema = z.object({
   prazo: z.enum(["curto", "medio", "longo"]),
   liquidez: z.enum(["baixa", "media", "alta"]),
   toleranciaRisco: z.enum(["baixa", "media", "alta"]),
+  capitalDisponivel: z.number().min(0).optional(),
   refinamento: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -40,6 +41,17 @@ export const empreendimentoSchema = z.object({
   iptuAnual: z.number().min(0).optional(),
   aluguelEstimado: z.number().min(0).optional(),
   ativo: z.boolean().optional(),
+  valorVenal: z.number().min(0).optional(),
+  dueDiligenceOk: z.boolean().optional(),
+});
+
+export const calibracaoSchema = z.object({
+  mesesDepois: z.union([z.literal(6), z.literal(12)]),
+  projecaoValorizacaoPct: z.number().optional(),
+  valorizacaoRealizadaPct: z.number().optional(),
+  projecaoRenda: z.number().optional(),
+  rendaRealizada: z.number().optional(),
+  observacoes: z.string().max(1000).optional(),
 });
 
 export const bairroSchema = z.object({
@@ -52,4 +64,5 @@ export const bairroSchema = z.object({
   zoneamento: z.string().optional(),
   planoDiretorUrl: z.string().url().optional(),
   ultimaRevisaoManual: z.string().optional(),
+  empregabilidadeRegional: z.string().optional(),
 });

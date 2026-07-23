@@ -44,6 +44,7 @@ export async function POST(request: Request) {
         prazo: p.prazo,
         liquidez: p.liquidez,
         tolerancia_risco: p.toleranciaRisco,
+        capital_disponivel: p.capitalDisponivel,
         refinamento: (p.refinamento ?? {}) as never,
         onboarding_completo: true,
         updated_at: new Date().toISOString(),

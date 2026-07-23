@@ -59,6 +59,16 @@ function penalidadeRisco(perfil: Perfil, emp: Empreendimento): number {
   return 0;
 }
 
+// Compara o capital disponivel declarado com uma entrada tipica de
+// financiamento (20-30% do preco). Sem capital declarado, nao penaliza -
+// nao ha informacao suficiente para julgar.
+function penalidadeOrcamento(perfil: Perfil, emp: Empreendimento): number {
+  if (perfil.capitalDisponivel == null || perfil.capitalDisponivel <= 0) return 0;
+  if (perfil.capitalDisponivel >= emp.preco * 0.3) return 0;
+  if (perfil.capitalDisponivel >= emp.preco * 0.2) return 8;
+  return 25;
+}
+
 export function calcularEncaixe(
   perfil: Perfil,
   emp: Empreendimento,
@@ -70,12 +80,13 @@ export function calcularEncaixe(
   const scoreBase = pesos.valorizacao * scoreValorizacao + pesos.renda * scoreRenda;
   const pLiquidez = penalidadeLiquidez(perfil, emp);
   const pRisco = penalidadeRisco(perfil, emp);
+  const pOrcamento = penalidadeOrcamento(perfil, emp);
 
-  const scoreEncaixe = clamp(scoreBase - pLiquidez - pRisco);
+  const scoreEncaixe = clamp(scoreBase - pLiquidez - pRisco - pOrcamento);
 
   return {
     scoreEncaixe: Math.round(scoreEncaixe * 10) / 10,
     pesos,
-    detalhes: { penalidadeLiquidez: pLiquidez, penalidadeRisco: pRisco },
+    detalhes: { penalidadeLiquidez: pLiquidez, penalidadeRisco: pRisco, penalidadeOrcamento: pOrcamento },
   };
 }

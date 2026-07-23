@@ -25,6 +25,8 @@ interface EmpreendimentoInicial {
   iptuAnual: string;
   aluguelEstimado: string;
   ativo: boolean;
+  valorVenal: string;
+  dueDiligenceOk: boolean;
 }
 
 const VAZIO: EmpreendimentoInicial = {
@@ -43,6 +45,8 @@ const VAZIO: EmpreendimentoInicial = {
   iptuAnual: "",
   aluguelEstimado: "",
   ativo: true,
+  valorVenal: "",
+  dueDiligenceOk: false,
 };
 
 function paraNumero(v: string): number | undefined {
@@ -83,6 +87,8 @@ export function EmpreendimentoForm({ bairros, inicial }: { bairros: Bairro[]; in
       valorCondominio: paraNumero(form.valorCondominio),
       iptuAnual: paraNumero(form.iptuAnual),
       aluguelEstimado: paraNumero(form.aluguelEstimado),
+      valorVenal: paraNumero(form.valorVenal),
+      dueDiligenceOk: form.dueDiligenceOk,
       ...(editando && { ativo: form.ativo }),
     };
 
@@ -189,6 +195,24 @@ export function EmpreendimentoForm({ bairros, inicial }: { bairros: Bairro[]; in
             onChange={(e) => set("aluguelEstimado", e.target.value)}
             className="input"
           />
+        </Campo>
+        <Campo label="Valor venal (R$)">
+          <input
+            type="number"
+            value={form.valorVenal}
+            onChange={(e) => set("valorVenal", e.target.value)}
+            className="input"
+          />
+        </Campo>
+        <Campo label="Due diligence">
+          <select
+            value={form.dueDiligenceOk ? "1" : "0"}
+            onChange={(e) => set("dueDiligenceOk", e.target.value === "1")}
+            className="input"
+          >
+            <option value="0">Pendente</option>
+            <option value="1">Concluída / OK</option>
+          </select>
         </Campo>
         {editando && (
           <Campo label="Ativo">

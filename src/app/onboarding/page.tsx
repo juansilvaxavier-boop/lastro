@@ -39,6 +39,7 @@ export default function OnboardingPage() {
   const [prazo, setPrazo] = useState<Prazo | null>(null);
   const [liquidez, setLiquidez] = useState<Liquidez | null>(null);
   const [risco, setRisco] = useState<Risco>("media");
+  const [capitalDisponivel, setCapitalDisponivel] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -57,6 +58,7 @@ export default function OnboardingPage() {
           prazo,
           liquidez,
           toleranciaRisco: risco,
+          capitalDisponivel: pularRefinamento || !capitalDisponivel ? undefined : Number(capitalDisponivel),
           refinamento: pularRefinamento ? {} : { observacoes },
         }),
       });
@@ -163,6 +165,20 @@ export default function OnboardingPage() {
                 </button>
               ))}
             </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="mb-2 text-sm font-semibold text-slate-800">Capital disponível para entrada (opcional)</legend>
+            <input
+              type="number"
+              value={capitalDisponivel}
+              onChange={(e) => setCapitalDisponivel(e.target.value)}
+              placeholder="Ex: 150000"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              Usamos isso para sinalizar quando um imóvel pede uma entrada maior do que você tem disponível.
+            </p>
           </fieldset>
 
           <fieldset>

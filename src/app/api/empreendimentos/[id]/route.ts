@@ -79,6 +79,8 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/empreendim
       ...(e.iptuAnual !== undefined && { iptu_anual: e.iptuAnual }),
       ...(e.aluguelEstimado !== undefined && { aluguel_estimado: e.aluguelEstimado }),
       ...(e.ativo !== undefined && { ativo: e.ativo }),
+      ...(e.valorVenal !== undefined && { valor_venal: e.valorVenal }),
+      ...(e.dueDiligenceOk !== undefined && { due_diligence_ok: e.dueDiligenceOk }),
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

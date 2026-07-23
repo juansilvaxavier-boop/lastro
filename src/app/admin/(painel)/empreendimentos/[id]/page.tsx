@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EmpreendimentoForm } from "@/components/admin/EmpreendimentoForm";
@@ -16,7 +17,15 @@ export default async function EditarEmpreendimentoPage({ params }: PageProps<"/a
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">Editar empreendimento</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">Editar empreendimento</h1>
+        <Link
+          href={`/admin/empreendimentos/${id}/calibracao`}
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Calibração →
+        </Link>
+      </div>
       <EmpreendimentoForm
         bairros={bairros ?? []}
         inicial={{
@@ -36,6 +45,8 @@ export default async function EditarEmpreendimentoPage({ params }: PageProps<"/a
           iptuAnual: paraString(emp.iptu_anual),
           aluguelEstimado: paraString(emp.aluguel_estimado),
           ativo: emp.ativo,
+          valorVenal: paraString(emp.valor_venal),
+          dueDiligenceOk: emp.due_diligence_ok ?? false,
         }}
       />
     </div>

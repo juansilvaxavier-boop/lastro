@@ -41,6 +41,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/bair
       ...(b.zoneamento !== undefined && { zoneamento: b.zoneamento }),
       ...(b.planoDiretorUrl !== undefined && { plano_diretor_url: b.planoDiretorUrl }),
       ...(b.ultimaRevisaoManual !== undefined && { ultima_revisao_manual: b.ultimaRevisaoManual }),
+      ...(b.empregabilidadeRegional !== undefined && { empregabilidade_regional: b.empregabilidadeRegional }),
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

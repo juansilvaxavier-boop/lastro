@@ -44,6 +44,7 @@ function toEnginePerfil(row: Database["public"]["Tables"]["perfis"]["Row"]): Per
     prazo: row.prazo as Perfil["prazo"],
     liquidez: row.liquidez as Perfil["liquidez"],
     toleranciaRisco: row.tolerancia_risco as Perfil["toleranciaRisco"],
+    capitalDisponivel: row.capital_disponivel != null ? Number(row.capital_disponivel) : null,
   };
 }
 

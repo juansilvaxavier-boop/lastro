@@ -39,6 +39,7 @@ export async function POST(request: Request) {
       zoneamento: b.zoneamento,
       plano_diretor_url: b.planoDiretorUrl,
       ultima_revisao_manual: b.ultimaRevisaoManual,
+      empregabilidade_regional: b.empregabilidadeRegional,
     })
     .select()
     .single();

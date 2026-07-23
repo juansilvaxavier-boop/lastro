@@ -55,6 +55,8 @@ export async function POST(request: Request) {
       valor_condominio: e.valorCondominio,
       iptu_anual: e.iptuAnual,
       aluguel_estimado: e.aluguelEstimado,
+      valor_venal: e.valorVenal,
+      due_diligence_ok: e.dueDiligenceOk,
     })
     .select()
     .single();

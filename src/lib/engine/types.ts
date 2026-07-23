@@ -11,6 +11,7 @@ export interface Perfil {
   prazo: Prazo;
   liquidez: Liquidez;
   toleranciaRisco: ToleranciaRisco;
+  capitalDisponivel: number | null;
 }
 
 export interface Bairro {
@@ -65,6 +66,7 @@ export interface MatchResult {
   detalhes: {
     penalidadeLiquidez: number;
     penalidadeRisco: number;
+    penalidadeOrcamento: number;
   };
 }
 
