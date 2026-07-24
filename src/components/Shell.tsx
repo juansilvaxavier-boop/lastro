@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { ChatAssistente } from "./assistente/ChatAssistente";
+import { useUsuario, podeEditar } from "./UsuarioContext";
 
 export function Shell({
   nome,
@@ -14,6 +16,7 @@ export function Shell({
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const usuario = useUsuario();
 
   return (
     <div className="flex h-full min-h-screen flex-col">
@@ -22,6 +25,7 @@ export function Shell({
         <Sidebar collapsed={collapsed} />
         <main className="min-w-0 flex-1 px-6 py-8">{children}</main>
       </div>
+      {podeEditar(usuario.papel) && <ChatAssistente />}
     </div>
   );
 }
