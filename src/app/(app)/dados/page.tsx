@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { Field } from "@/components/ui/Field";
 import { CardGridSkeleton } from "@/components/ui/Skeleton";
 import { IndicadorCard } from "@/components/dados/IndicadorCard";
 import { DadoForm } from "@/components/dados/DadoForm";
@@ -11,6 +12,16 @@ import { TrendChart } from "@/components/TrendChart";
 import { useUsuario, podeEditar } from "@/components/UsuarioContext";
 import { formatarData } from "@/lib/format";
 import type { Localizacao, PrecoMercadoLocal } from "@/types/dominio";
+
+function dataIsoMenosAnos(anos: number): string {
+  const data = new Date();
+  data.setFullYear(data.getFullYear() - anos);
+  return data.toISOString().slice(0, 10);
+}
+
+function hojeIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 interface IndicadorResumo {
   tipo: string;
@@ -28,7 +39,11 @@ export default function DadosPage() {
   const [precosLocais, setPrecosLocais] = useState<PrecoMercadoLocal[]>([]);
   const [localizacoes, setLocalizacoes] = useState<Localizacao[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
+  const [modalSincronizarAberto, setModalSincronizarAberto] = useState(false);
+  const [dataInicialSync, setDataInicialSync] = useState(dataIsoMenosAnos(2));
+  const [dataFinalSync, setDataFinalSync] = useState(hojeIso());
   const [sincronizando, setSincronizando] = useState(false);
+  const [resultadoSync, setResultadoSync] = useState<string | null>(null);
   const [historicoTipo, setHistoricoTipo] = useState<string | null>(null);
   const [historico, setHistorico] = useState<{ data: string; valor: number }[]>([]);
 
@@ -50,10 +65,18 @@ export default function DadosPage() {
       .then((d) => setLocalizacoes(d.localizacoes ?? []));
   }, [carregar]);
 
-  async function sincronizar() {
+  async function sincronizar(comHistorico: boolean) {
     setSincronizando(true);
-    await fetch("/api/jobs/sync-bacen");
+    setResultadoSync(null);
+    const query = comHistorico ? `?dataInicial=${dataInicialSync}&dataFinal=${dataFinalSync}` : "";
+    const res = await fetch(`/api/jobs/sync-bacen${query}`);
+    const data = await res.json();
     setSincronizando(false);
+    if (!res.ok) {
+      setResultadoSync(data.error ?? "Não foi possível sincronizar.");
+      return;
+    }
+    setResultadoSync(`${data.sincronizados} ponto(s) sincronizado(s).`);
     carregar();
   }
 
@@ -87,7 +110,14 @@ export default function DadosPage() {
               <Plus size={16} /> Novo dado
             </Button>
           )}
-          <Button variant="outline" onClick={sincronizar} disabled={sincronizando}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setResultadoSync(null);
+              setModalSincronizarAberto(true);
+            }}
+            disabled={sincronizando}
+          >
             <RefreshCw size={16} className={sincronizando ? "animate-spin" : ""} /> Sincronizar agora
           </Button>
         </div>
@@ -150,6 +180,45 @@ export default function DadosPage() {
             carregar();
           }}
         />
+      </Modal>
+
+      <Modal
+        aberto={modalSincronizarAberto}
+        titulo="Sincronizar indicadores do Bacen"
+        onFechar={() => setModalSincronizarAberto(false)}
+      >
+        <p className="mb-4 text-sm text-slate-500">
+          Selic, CDI, IPCA e IGP-M são buscados diretamente do Bacen (SGS). Escolha um período para trazer um
+          histórico maior — a busca de IPCA/IGP-M precisa de 11 meses extra antes do início para calcular a taxa
+          anualizada do primeiro ponto, então pode levar alguns segundos a mais.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="De">
+            <input
+              className="input"
+              type="date"
+              value={dataInicialSync}
+              onChange={(e) => setDataInicialSync(e.target.value)}
+            />
+          </Field>
+          <Field label="Até">
+            <input
+              className="input"
+              type="date"
+              value={dataFinalSync}
+              onChange={(e) => setDataFinalSync(e.target.value)}
+            />
+          </Field>
+        </div>
+        {resultadoSync && <p className="mt-4 text-sm text-slate-600">{resultadoSync}</p>}
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Button onClick={() => sincronizar(true)} disabled={sincronizando}>
+            {sincronizando ? "Sincronizando..." : "Sincronizar período"}
+          </Button>
+          <Button variant="outline" onClick={() => sincronizar(false)} disabled={sincronizando}>
+            Só o dado mais recente
+          </Button>
+        </div>
       </Modal>
 
       <Modal
