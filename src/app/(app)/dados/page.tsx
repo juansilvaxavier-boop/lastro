@@ -29,6 +29,15 @@ interface IndicadorResumo {
   tendencia: "alta" | "queda" | null;
 }
 
+interface PontoPreview {
+  indicador: string;
+  valor: number;
+  dataReferencia: string;
+  fonte: string;
+}
+
+const LABEL_INDICADOR: Record<string, string> = { selic: "Selic", cdi: "CDI", ipca: "IPCA", igpm: "IGP-M" };
+
 const NACIONAIS_AUTOMATIZADOS = ["selic", "cdi", "ipca", "igpm"];
 
 export default function DadosPage() {
@@ -43,7 +52,10 @@ export default function DadosPage() {
   const [dataInicialSync, setDataInicialSync] = useState(dataIsoMenosAnos(2));
   const [dataFinalSync, setDataFinalSync] = useState(hojeIso());
   const [sincronizando, setSincronizando] = useState(false);
+  const [lancando, setLancando] = useState(false);
   const [resultadoSync, setResultadoSync] = useState<string | null>(null);
+  const [erroSync, setErroSync] = useState<string | null>(null);
+  const [previa, setPrevia] = useState<PontoPreview[] | null>(null);
   const [historicoTipo, setHistoricoTipo] = useState<string | null>(null);
   const [historico, setHistorico] = useState<{ data: string; valor: number }[]>([]);
 
@@ -65,15 +77,49 @@ export default function DadosPage() {
       .then((d) => setLocalizacoes(d.localizacoes ?? []));
   }, [carregar]);
 
-  async function sincronizar(comHistorico: boolean) {
+  async function buscarPreview() {
     setSincronizando(true);
+    setErroSync(null);
     setResultadoSync(null);
-    const query = comHistorico ? `?dataInicial=${dataInicialSync}&dataFinal=${dataFinalSync}` : "";
-    const res = await fetch(`/api/jobs/sync-bacen${query}`);
+    const res = await fetch(`/api/jobs/sync-bacen?dataInicial=${dataInicialSync}&dataFinal=${dataFinalSync}&preview=1`);
     const data = await res.json();
     setSincronizando(false);
     if (!res.ok) {
-      setResultadoSync(data.error ?? "Não foi possível sincronizar.");
+      setErroSync(data.error ?? "Não foi possível buscar os dados no Bacen.");
+      return;
+    }
+    setPrevia(data.indicadores);
+  }
+
+  async function lancarPreview() {
+    if (!previa) return;
+    setLancando(true);
+    setErroSync(null);
+    const res = await fetch("/api/jobs/sync-bacen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ indicadores: previa }),
+    });
+    const data = await res.json();
+    setLancando(false);
+    if (!res.ok) {
+      setErroSync(data.error ?? "Não foi possível lançar os dados.");
+      return;
+    }
+    setResultadoSync(`${data.sincronizados} ponto(s) lançado(s).`);
+    setPrevia(null);
+    carregar();
+  }
+
+  async function sincronizarRapido() {
+    setSincronizando(true);
+    setErroSync(null);
+    setResultadoSync(null);
+    const res = await fetch("/api/jobs/sync-bacen");
+    const data = await res.json();
+    setSincronizando(false);
+    if (!res.ok) {
+      setErroSync(data.error ?? "Não foi possível sincronizar.");
       return;
     }
     setResultadoSync(`${data.sincronizados} ponto(s) sincronizado(s).`);
@@ -114,6 +160,8 @@ export default function DadosPage() {
             variant="outline"
             onClick={() => {
               setResultadoSync(null);
+              setErroSync(null);
+              setPrevia(null);
               setModalSincronizarAberto(true);
             }}
             disabled={sincronizando}
@@ -186,39 +234,80 @@ export default function DadosPage() {
         aberto={modalSincronizarAberto}
         titulo="Sincronizar indicadores do Bacen"
         onFechar={() => setModalSincronizarAberto(false)}
+        largura="max-w-xl"
       >
-        <p className="mb-4 text-sm text-slate-500">
-          Selic, CDI, IPCA e IGP-M são buscados diretamente do Bacen (SGS). Escolha um período para trazer um
-          histórico maior — a busca de IPCA/IGP-M precisa de 11 meses extra antes do início para calcular a taxa
-          anualizada do primeiro ponto, então pode levar alguns segundos a mais.
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="De">
-            <input
-              className="input"
-              type="date"
-              value={dataInicialSync}
-              onChange={(e) => setDataInicialSync(e.target.value)}
-            />
-          </Field>
-          <Field label="Até">
-            <input
-              className="input"
-              type="date"
-              value={dataFinalSync}
-              onChange={(e) => setDataFinalSync(e.target.value)}
-            />
-          </Field>
-        </div>
-        {resultadoSync && <p className="mt-4 text-sm text-slate-600">{resultadoSync}</p>}
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Button onClick={() => sincronizar(true)} disabled={sincronizando}>
-            {sincronizando ? "Sincronizando..." : "Sincronizar período"}
-          </Button>
-          <Button variant="outline" onClick={() => sincronizar(false)} disabled={sincronizando}>
-            Só o dado mais recente
-          </Button>
-        </div>
+        {previa === null ? (
+          <>
+            <p className="mb-4 text-sm text-slate-500">
+              Selic, CDI, IPCA e IGP-M são buscados diretamente do Bacen (SGS). Escolha um período, confira os
+              pontos encontrados e só depois lance no sistema.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="De">
+                <input
+                  className="input"
+                  type="date"
+                  value={dataInicialSync}
+                  onChange={(e) => setDataInicialSync(e.target.value)}
+                />
+              </Field>
+              <Field label="Até">
+                <input
+                  className="input"
+                  type="date"
+                  value={dataFinalSync}
+                  onChange={(e) => setDataFinalSync(e.target.value)}
+                />
+              </Field>
+            </div>
+            {erroSync && <p className="mt-4 text-sm text-red-600">{erroSync}</p>}
+            {resultadoSync && <p className="mt-4 text-sm text-emerald-600">{resultadoSync}</p>}
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button onClick={buscarPreview} disabled={sincronizando}>
+                {sincronizando ? "Buscando..." : "Buscar período"}
+              </Button>
+              <Button variant="outline" onClick={sincronizarRapido} disabled={sincronizando}>
+                Só lançar o dado mais recente
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mb-3 text-sm text-slate-500">
+              {previa.length} ponto(s) encontrado(s) no Bacen para o período. Confira e clique em &ldquo;Lançar&rdquo;
+              para gravar no sistema.
+            </p>
+            <div className="max-h-80 overflow-y-auto rounded-xl border border-gray-200">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 border-b border-gray-100 bg-gray-50 text-slate-500">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Indicador</th>
+                    <th className="px-3 py-2 font-medium">Data</th>
+                    <th className="px-3 py-2 font-medium">Valor (% a.a.)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previa.map((p, i) => (
+                    <tr key={`${p.indicador}-${p.dataReferencia}-${i}`} className="border-b border-gray-50 last:border-0">
+                      <td className="px-3 py-2">{LABEL_INDICADOR[p.indicador] ?? p.indicador}</td>
+                      <td className="px-3 py-2">{formatarData(p.dataReferencia)}</td>
+                      <td className="px-3 py-2">{(p.valor * 100).toFixed(2)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {erroSync && <p className="mt-4 text-sm text-red-600">{erroSync}</p>}
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button onClick={lancarPreview} disabled={lancando}>
+                {lancando ? "Lançando..." : `Lançar ${previa.length} dado(s)`}
+              </Button>
+              <Button variant="outline" onClick={() => setPrevia(null)} disabled={lancando}>
+                Voltar
+              </Button>
+            </div>
+          </>
+        )}
       </Modal>
 
       <Modal

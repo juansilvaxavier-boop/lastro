@@ -62,6 +62,20 @@ export const indicadorSchema = z.object({
   fonte: z.string().min(1),
 });
 
+export const lancarIndicadoresSchema = z.object({
+  indicadores: z
+    .array(
+      z.object({
+        indicador: z.enum(["selic", "cdi", "igpm", "ipca"]),
+        valor: z.number(),
+        dataReferencia: z.string(),
+        fonte: z.string().min(1),
+        raw: z.unknown(),
+      })
+    )
+    .min(1),
+});
+
 export const precoMercadoSchema = z.object({
   localizacaoId: z.string().uuid(),
   tipo: z.enum(["venda", "aluguel"]),
