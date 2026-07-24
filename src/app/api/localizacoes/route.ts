@@ -28,7 +28,12 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("localizacoes")
-    .insert({ nome: parsed.data.nome, tipo: parsed.data.tipo, parent_id: parsed.data.parentId })
+    .insert({
+      nome: parsed.data.nome,
+      tipo: parsed.data.tipo,
+      parent_id: parsed.data.parentId,
+      codigo_ibge: parsed.data.codigoIbge,
+    })
     .select()
     .single();
 

@@ -1,15 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, MapPin, ChevronRight } from "lucide-react";
+import { Plus, MapPin, ChevronRight, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { CardGridSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LocalizacaoForm } from "@/components/regioes/LocalizacaoForm";
+import { InfoSocioeconomica } from "@/components/regioes/InfoSocioeconomica";
+import { RankingBairros, type ItemRankingBairro } from "@/components/regioes/RankingBairros";
+import { TrendChart } from "@/components/TrendChart";
+import { CORES_SERIE } from "@/components/ui/ChartLegend";
+import { mesclarSeries } from "@/lib/tendenciasCalc";
 import { useUsuario, podeEditar } from "@/components/UsuarioContext";
 import { formatarPercentual } from "@/lib/format";
-import type { Localizacao, PrecoMercadoLocal } from "@/types/dominio";
+import type { Localizacao, PrecoMercadoLocal, IndicadorMercado } from "@/types/dominio";
 
 export default function RegioesPage() {
   const usuario = useUsuario();
@@ -18,7 +23,10 @@ export default function RegioesPage() {
   const [localizacoes, setLocalizacoes] = useState<Localizacao[] | null>(null);
   const [caminho, setCaminho] = useState<Localizacao[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
+  const [modalEditarAberto, setModalEditarAberto] = useState(false);
   const [precos, setPrecos] = useState<PrecoMercadoLocal[]>([]);
+  const [precosCidade, setPrecosCidade] = useState<PrecoMercadoLocal[]>([]);
+  const [ipcaHistorico, setIpcaHistorico] = useState<IndicadorMercado[]>([]);
 
   const carregar = useCallback(async () => {
     const res = await fetch("/api/localizacoes");
@@ -30,7 +38,10 @@ export default function RegioesPage() {
     void Promise.resolve().then(carregar);
   }, [carregar]);
 
-  const nivelAtual = caminho[caminho.length - 1] ?? null;
+  const nivelAtualId = caminho[caminho.length - 1]?.id ?? null;
+  const nivelAtual = nivelAtualId
+    ? (localizacoes?.find((l) => l.id === nivelAtualId) ?? caminho[caminho.length - 1])
+    : null;
 
   const filhos = useMemo(() => {
     if (!localizacoes) return [];
@@ -38,6 +49,11 @@ export default function RegioesPage() {
       .filter((l) => l.parent_id === (nivelAtual?.id ?? null))
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [localizacoes, nivelAtual]);
+
+  const bairrosDaCidade = useMemo(
+    () => (nivelAtual?.tipo === "cidade" ? filhos.filter((f) => f.tipo === "bairro") : []),
+    [filhos, nivelAtual]
+  );
 
   useEffect(() => {
     if (nivelAtual && (nivelAtual.tipo === "bairro" || nivelAtual.tipo === "cidade")) {
@@ -49,10 +65,56 @@ export default function RegioesPage() {
     }
   }, [nivelAtual]);
 
+  useEffect(() => {
+    if (nivelAtual?.tipo === "cidade") {
+      fetch("/api/precos-mercado")
+        .then((r) => r.json())
+        .then((d) => setPrecosCidade(d.precos ?? []));
+      fetch("/api/indicadores?tipo=ipca")
+        .then((r) => r.json())
+        .then((d) => setIpcaHistorico(d.historico ?? []));
+    } else {
+      Promise.resolve().then(() => setPrecosCidade([]));
+    }
+  }, [nivelAtual]);
+
   const precoVenda = precos.filter((p) => p.tipo === "venda").at(-1);
   const precoAluguel = precos.filter((p) => p.tipo === "aluguel").at(-1);
   const yieldEstimado =
     precoVenda && precoAluguel ? (precoAluguel.valor_m2 * 12) / precoVenda.valor_m2 : null;
+
+  const idsBairros = new Set(bairrosDaCidade.map((b) => b.id));
+  const rankingBairros: ItemRankingBairro[] = bairrosDaCidade
+    .map((bairro) => {
+      const historicoVenda = precosCidade.filter((p) => p.localizacao_id === bairro.id && p.tipo === "venda");
+      const ultimo = historicoVenda.at(-1);
+      if (!ultimo) return null;
+      return { id: bairro.id, nome: bairro.nome, precoM2: ultimo.valor_m2, variacao12m: ultimo.variacao_anual_12m };
+    })
+    .filter((x): x is ItemRankingBairro => x !== null)
+    .sort((a, b) => b.precoM2 - a.precoM2);
+
+  const serieVariacaoCidade = useMemo(() => {
+    if (!nivelAtual || nivelAtual.tipo !== "cidade") return [];
+    const porData = new Map<string, number[]>();
+    for (const p of precosCidade) {
+      if (p.tipo !== "venda" || !idsBairros.has(p.localizacao_id ?? "") || p.variacao_anual_12m === null) continue;
+      const lista = porData.get(p.data_referencia) ?? [];
+      lista.push(p.variacao_anual_12m);
+      porData.set(p.data_referencia, lista);
+    }
+    return [...porData.entries()]
+      .map(([data, valores]) => ({ data, valor: (valores.reduce((a, b) => a + b, 0) / valores.length) * 100 }))
+      .sort((a, b) => a.data.localeCompare(b.data));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [precosCidade, nivelAtual]);
+
+  const serieIpca = ipcaHistorico.map((i) => ({ data: i.data_referencia, valor: i.valor * 100 }));
+
+  const dadosGrafico = mesclarSeries({
+    [`Preço médio (${nivelAtual?.nome ?? ""})`]: serieVariacaoCidade,
+    IPCA: serieIpca,
+  });
 
   return (
     <div>
@@ -73,17 +135,52 @@ export default function RegioesPage() {
           <span key={item.id} className="flex items-center gap-1">
             <ChevronRight size={14} />
             <button type="button" onClick={() => setCaminho(caminho.slice(0, i + 1))} className="hover:text-slate-900">
-              {item.nome}
+              {localizacoes?.find((l) => l.id === item.id)?.nome ?? item.nome}
             </button>
           </span>
         ))}
+        {nivelAtual && editavel && (
+          <button
+            type="button"
+            onClick={() => setModalEditarAberto(true)}
+            className="ml-1 flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-slate-400 hover:bg-gray-100 hover:text-slate-700"
+          >
+            <Pencil size={13} /> Editar
+          </button>
+        )}
       </div>
+
+      {nivelAtual?.tipo === "cidade" && (
+        <InfoSocioeconomica localizacao={nivelAtual} editavel={editavel} onAtualizado={carregar} />
+      )}
 
       {nivelAtual && (nivelAtual.tipo === "bairro" || nivelAtual.tipo === "cidade") && (precoVenda || precoAluguel) && (
         <div className="mb-5 flex flex-wrap gap-6 rounded-2xl border border-gray-200 bg-white p-4 text-sm">
           {precoVenda && <p><span className="text-slate-500">Preço médio/m²: </span><span className="font-semibold">{precoVenda.valor_m2.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></p>}
           {precoAluguel && <p><span className="text-slate-500">Aluguel médio/m²: </span><span className="font-semibold">{precoAluguel.valor_m2.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></p>}
           {yieldEstimado !== null && <p><span className="text-slate-500">Yield estimado: </span><span className="font-semibold">{formatarPercentual(yieldEstimado, 1)}</span></p>}
+        </div>
+      )}
+
+      {nivelAtual?.tipo === "cidade" && bairrosDaCidade.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+            Bairros mais representativos
+          </h2>
+          <RankingBairros itens={rankingBairros} />
+        </div>
+      )}
+
+      {nivelAtual?.tipo === "cidade" && dadosGrafico.length > 0 && (
+        <div className="mb-8 rounded-2xl border border-gray-200 bg-white p-5">
+          <TrendChart
+            titulo="Variação dos preços de venda em 12 meses"
+            series={[
+              { key: `Preço médio (${nivelAtual.nome})`, label: `Preço médio (${nivelAtual.nome})`, color: CORES_SERIE[0] },
+              { key: "IPCA", label: "IPCA", color: CORES_SERIE[1] },
+            ]}
+            dados={dadosGrafico}
+          />
         </div>
       )}
 
@@ -130,6 +227,20 @@ export default function RegioesPage() {
           }}
         />
       </Modal>
+
+      {nivelAtual && (
+        <Modal aberto={modalEditarAberto} titulo={`Editar ${nivelAtual.nome}`} onFechar={() => setModalEditarAberto(false)}>
+          <LocalizacaoForm
+            paisagem={localizacoes ?? []}
+            parentSugerido={nivelAtual}
+            localizacao={nivelAtual}
+            onSucesso={async () => {
+              setModalEditarAberto(false);
+              await carregar();
+            }}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

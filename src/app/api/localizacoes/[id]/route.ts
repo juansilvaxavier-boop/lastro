@@ -15,7 +15,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("localizacoes")
-    .update({ nome: parsed.data.nome, tipo: parsed.data.tipo, parent_id: parsed.data.parentId })
+    .update({
+      nome: parsed.data.nome,
+      tipo: parsed.data.tipo,
+      parent_id: parsed.data.parentId,
+      codigo_ibge: parsed.data.codigoIbge,
+    })
     .eq("id", id)
     .select()
     .single();

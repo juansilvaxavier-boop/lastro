@@ -4,6 +4,7 @@ export const localizacaoSchema = z.object({
   nome: z.string().min(1),
   tipo: z.enum(["estado", "regiao", "cidade", "bairro"]),
   parentId: z.string().uuid().nullable().optional(),
+  codigoIbge: z.string().regex(/^\d{7}$/, "Código IBGE deve ter 7 dígitos").nullable().optional(),
 });
 
 export const construtoraSchema = z.object({

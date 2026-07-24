@@ -10,17 +10,20 @@ const TIPOS = ["estado", "regiao", "cidade", "bairro"] as const;
 export function LocalizacaoForm({
   paisagem,
   parentSugerido,
+  localizacao,
   onSucesso,
 }: {
   paisagem: Localizacao[];
   parentSugerido: Localizacao | null;
+  localizacao?: Localizacao;
   onSucesso: () => void;
 }) {
-  const [nome, setNome] = useState("");
+  const [nome, setNome] = useState(localizacao?.nome ?? "");
   const [tipo, setTipo] = useState<(typeof TIPOS)[number]>(
-    parentSugerido ? proximoTipo(parentSugerido.tipo) : "estado"
+    (localizacao?.tipo as (typeof TIPOS)[number]) ?? (parentSugerido ? proximoTipo(parentSugerido.tipo) : "estado")
   );
-  const [parentId, setParentId] = useState(parentSugerido?.id ?? "");
+  const [parentId, setParentId] = useState(localizacao?.parent_id ?? parentSugerido?.id ?? "");
+  const [codigoIbge, setCodigoIbge] = useState(localizacao?.codigo_ibge ?? "");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
@@ -34,10 +37,17 @@ export function LocalizacaoForm({
     setErro(null);
     setEnviando(true);
 
-    const res = await fetch("/api/localizacoes", {
-      method: "POST",
+    const payload = {
+      nome,
+      tipo,
+      parentId: parentId || null,
+      codigoIbge: tipo === "cidade" ? codigoIbge || null : undefined,
+    };
+
+    const res = await fetch(localizacao ? `/api/localizacoes/${localizacao.id}` : "/api/localizacoes", {
+      method: localizacao ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, tipo, parentId: parentId || null }),
+      body: JSON.stringify(payload),
     });
 
     setEnviando(false);
@@ -80,6 +90,17 @@ export function LocalizacaoForm({
       <Field label="Nome">
         <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} required />
       </Field>
+      {tipo === "cidade" && (
+        <Field label="Código IBGE do município (7 dígitos)">
+          <input
+            className="input"
+            value={codigoIbge}
+            onChange={(e) => setCodigoIbge(e.target.value)}
+            placeholder="ex: 3549904"
+            maxLength={7}
+          />
+        </Field>
+      )}
       {erro && <p className="text-sm text-red-600">{erro}</p>}
       <Button type="submit" disabled={enviando} className="mt-2">
         {enviando ? "Salvando..." : "Salvar"}

@@ -333,24 +333,45 @@ export type Database = {
       }
       localizacoes: {
         Row: {
+          area_km2: number | null
+          codigo_ibge: string | null
           created_at: string
+          dados_ibge_atualizado_em: string | null
           id: string
           nome: string
           parent_id: string | null
+          pib_per_capita: number | null
+          pib_per_capita_ano: number | null
+          populacao: number | null
+          populacao_ano: number | null
           tipo: string
         }
         Insert: {
+          area_km2?: number | null
+          codigo_ibge?: string | null
           created_at?: string
+          dados_ibge_atualizado_em?: string | null
           id?: string
           nome: string
           parent_id?: string | null
+          pib_per_capita?: number | null
+          pib_per_capita_ano?: number | null
+          populacao?: number | null
+          populacao_ano?: number | null
           tipo: string
         }
         Update: {
+          area_km2?: number | null
+          codigo_ibge?: string | null
           created_at?: string
+          dados_ibge_atualizado_em?: string | null
           id?: string
           nome?: string
           parent_id?: string | null
+          pib_per_capita?: number | null
+          pib_per_capita_ano?: number | null
+          populacao?: number | null
+          populacao_ano?: number | null
           tipo?: string
         }
         Relationships: [
