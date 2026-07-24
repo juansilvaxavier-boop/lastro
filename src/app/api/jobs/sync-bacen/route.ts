@@ -1,33 +1,42 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { verificarSegredoCron } from "@/lib/jobAuth";
 import { coletarIndicadoresBacen } from "@/lib/connectors/bacen";
 
-/** Camada de Integracao: sincroniza Selic/CDI/IGP-M/IPCA (Bacen SGS). */
-// Vercel Cron chama via GET; POST fica disponivel para disparo manual/CI.
-export async function GET(request: Request) {
-  const naoAutorizado = verificarSegredoCron(request);
-  if (naoAutorizado) return naoAutorizado;
+async function executar() {
+  const indicadores = await coletarIndicadoresBacen();
+  const admin = createAdminClient();
+
+  const { error } = await admin.from("indicadores_mercado").upsert(
+    indicadores.map((i) => ({
+      tipo: i.indicador,
+      valor: i.valor,
+      data_referencia: i.dataReferencia,
+      fonte: i.fonte,
+      raw: i.raw as never,
+    })),
+    { onConflict: "tipo,data_referencia" }
+  );
+
+  if (error) throw new Error(error.message);
+  return indicadores;
+}
+
+export async function GET(request: NextRequest) {
+  if (!verificarSegredoCron(request)) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
 
   try {
-    const indicadores = await coletarIndicadoresBacen();
-    const admin = createAdminClient();
-
-    const { error } = await admin.from("macro_dados").upsert(
-      indicadores.map((i) => ({
-        indicador: i.indicador,
-        data_referencia: i.dataReferencia,
-        valor: i.valor,
-        fonte: i.fonte,
-        raw: i.raw as never,
-      })),
-      { onConflict: "indicador,data_referencia" }
-    );
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    return NextResponse.json({ sincronizados: indicadores.map((i) => i.indicador) });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+    const indicadores = await executar();
+    return NextResponse.json({ sincronizados: indicadores.length });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Falha na sincronização" }, { status: 502 });
   }
 }
 

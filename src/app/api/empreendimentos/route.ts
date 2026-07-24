@@ -1,69 +1,83 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { exigirSessao, exigirPapel } from "@/lib/auth";
 import { empreendimentoSchema } from "@/lib/validation";
-import { recalcularScoresEempreendimento } from "@/lib/pipeline";
-import { exigirAdmin } from "@/lib/admin";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const guard = await exigirSessao();
+  if ("resposta" in guard) return guard.resposta;
+
+  const params = request.nextUrl.searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("empreendimentos")
-    .select("*, bairros(nome, cidade), scores(score_valorizacao, score_renda, calculado_em)")
+    .select("*, construtora:construtoras(id, nome), bairro:localizacoes(id, nome)")
     .eq("ativo", true)
     .order("created_at", { ascending: false });
 
+  const status = params.get("status");
+  if (status) query = query.eq("status", status);
+
+  const construtoraId = params.get("construtoraId");
+  if (construtoraId) query = query.eq("construtora_id", construtoraId);
+
+  const bairroId = params.get("bairroId");
+  if (bairroId) query = query.eq("bairro_id", bairroId);
+
+  const precoMin = params.get("precoMin");
+  if (precoMin) query = query.gte("preco_total", Number(precoMin));
+
+  const precoMax = params.get("precoMax");
+  if (precoMax) query = query.lte("preco_total", Number(precoMax));
+
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ empreendimentos: data });
+
+  const { data: favoritos } = await supabase
+    .from("favoritos")
+    .select("empreendimento_id")
+    .eq("usuario_id", guard.usuario.id);
+  const idsFavoritos = new Set((favoritos ?? []).map((f) => f.empreendimento_id));
+
+  return NextResponse.json({
+    empreendimentos: data.map((e) => ({ ...e, favoritado: idsFavoritos.has(e.id) })),
+  });
 }
 
-export async function POST(request: Request) {
-  const supabase = await createClient();
-  const naoAutorizado = await exigirAdmin(supabase);
-  if (naoAutorizado) return naoAutorizado;
+export async function POST(request: NextRequest) {
+  const guard = await exigirPapel(["admin", "gestor"]);
+  if ("resposta" in guard) return guard.resposta;
 
   const body = await request.json();
   const parsed = empreendimentoSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-  const e = parsed.data;
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  const d = parsed.data;
 
-  // Cadastro de empreendimento e uma escrita de sistema (dado de mercado
-  // compartilhado, nao pertence a um investidor) - usa o client admin para
-  // contornar a RLS de leitura-publica-somente da tabela.
-  const admin = createAdminClient();
-  const { data, error } = await admin
+  const supabase = await createClient();
+  const { data, error } = await supabase
     .from("empreendimentos")
     .insert({
-      nome: e.nome,
-      incorporadora: e.incorporadora,
-      bairro_id: e.bairroId,
-      endereco: e.endereco,
-      tipo: e.tipo,
-      status_obra: e.statusObra,
-      data_entrega_prevista: e.dataEntregaPrevista,
-      preco: e.preco,
-      area_m2: e.areaM2,
-      quartos: e.quartos,
-      vagas: e.vagas,
-      valor_condominio: e.valorCondominio,
-      iptu_anual: e.iptuAnual,
-      aluguel_estimado: e.aluguelEstimado,
-      valor_venal: e.valorVenal,
-      due_diligence_ok: e.dueDiligenceOk,
+      nome: d.nome,
+      construtora_id: d.construtoraId,
+      bairro_id: d.bairroId,
+      metragem_privativa: d.metragemPrivativa,
+      metragem_total: d.metragemTotal,
+      preco_total: d.precoTotal,
+      data_lancamento: d.dataLancamento,
+      data_entrega_prevista: d.dataEntregaPrevista,
+      data_entrega_real: d.dataEntregaReal,
+      indice_correcao_obra: d.indiceCorrecaoObra,
+      indice_correcao_pos_entrega: d.indiceCorrecaoPosEntrega,
+      status: d.status,
+      unidades_totais: d.unidadesTotais,
+      unidades_disponiveis: d.unidadesDisponiveis,
+      imagem_url: d.imagemUrl,
+      ativo: d.ativo ?? true,
     })
     .select()
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  const scores = await recalcularScoresEempreendimento(admin, data.id);
-
-  return NextResponse.json({ empreendimento: data, scores }, { status: 201 });
+  return NextResponse.json({ empreendimento: data }, { status: 201 });
 }

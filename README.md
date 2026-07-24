@@ -1,39 +1,44 @@
 # Lastro
 
-Sistema de análise de investimento imobiliário para São José do Rio Preto/SP.
-O produto final é o **encaixe**: o cruzamento entre o perfil do investidor, o
-produto (empreendimento) e o contexto (bairro + macroeconomia) — não um
-ranking genérico de "melhores imóveis".
+CRM imobiliário: acompanhamento de tendências de mercado, controle de imóveis
+(empreendimentos), funil de clientes, cadastro de construtoras, hierarquia de
+regiões (estado → região → cidade → bairro) e dados de mercado (Selic, CDI,
+IPCA, IGP-M, INCC, preço/aluguel por região) — tudo num único sistema interno
+para a equipe (admin/corretor/gestor).
 
 ## Stack
 
 Tudo em TypeScript, um repo, um deploy:
 
 - **Next.js 16 (App Router)** — frontend + `app/api/*` como camada de API
-- **Supabase** — Postgres (dados), Auth (login por link mágico), RLS
-- **Vercel** — hosting + Cron Jobs (scheduler de alertas e sincronização de fontes)
-- **Motor de cálculo** (`src/lib/engine`) — scores de valorização/renda, matching
-  perfil×produto, cenários via simulação Monte Carlo, simulador de financiamento
-  (PRICE/SAC), selo de confiança de calibração
-- **Conectores de dados** (`src/lib/connectors`) — Bacen (SGS), IBGE (SIDRA), CVM
-  (informes mensais de FII)
-- `@react-pdf/renderer` para o PDF one-pager, `recharts` para os gráficos
+- **Supabase** — Postgres (dados), Auth (e-mail + senha), RLS
+- **Vercel** — hosting + Cron Job (sincronização diária de indicadores do Bacen)
+- **Motor de cálculo** (`src/lib/engine`) — financiamento SAC/PRICE, calculadora
+  com os 4 modos de pagamento (à vista, financiamento bancário, financiamento
+  direto com a construtora, fluxo personalizado), cap rate, % de entregas no
+  prazo, ROI acumulado, projeção de valor de revenda
+- **Conector de dados** (`src/lib/connectors/bacen.ts`) — Bacen (SGS): Selic, CDI,
+  IGP-M, IPCA
+- `recharts` para os gráficos, `lucide-react` para os ícones
 
 ## Estrutura
 
 ```
 src/
   lib/
-    engine/         motor de calculo puro (sem I/O) - testavel isoladamente
-    connectors/      integracoes Bacen/IBGE/CVM
-    pipeline.ts      liga o motor ao banco (recalculo de scores e matches)
-    supabase/        clientes Supabase (browser, server, admin)
-    validation.ts    schemas zod
+    engine/          motor de calculo puro (sem I/O) - testavel isoladamente
+    connectors/       integracao Bacen (SGS)
+    supabase/         clientes Supabase (browser, server, admin)
+    validation.ts     schemas zod
+    auth.ts           guardas de sessao/papel para as rotas
+  components/
+    ui/               primitivos (Button, Card, Modal, ConfirmDialog...)
+    imoveis/ clientes/ construtoras/ regioes/ dados/ tendencias/
   app/
-    (app)/           paginas autenticadas: dashboard, watchlist, alertas
-    onboarding/       questionario essencial + refinamento
-    login/            login por link magico
-    api/              rotas REST + jobs de sistema
+    (app)/            paginas autenticadas: tendencias, imoveis, clientes,
+                       construtoras, regioes, dados
+    login/            login (e-mail + senha)
+    api/               rotas REST + job de sistema (sync-bacen)
 ```
 
 ## Rodando localmente
@@ -53,49 +58,43 @@ npm run dev
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase > Project Settings > API (**secreta** — nunca no cliente) |
 | `CRON_SECRET` | Gere uma string aleatória; configure a mesma na Vercel |
 
-O projeto Supabase (`Lastro`, região us-west-2) e o schema já estão criados e
-populados com dados de exemplo de 8 empreendimentos em 5 bairros de Rio Preto.
+O projeto Supabase (`Lastro`, região us-west-2) e o schema (usuarios,
+construtoras, localizacoes, empreendimentos, clientes, interacoes,
+indicadores_mercado, precos_mercado_local, simulacoes etc.) já estão criados.
+O primeiro usuário precisa ser inserido manualmente em `usuarios` (papel
+`admin`) apontando para um usuário já criado em Supabase Auth.
 
 ## Deploy (Vercel)
 
 1. Importe este repositório na Vercel.
 2. Configure as 4 variáveis de ambiente acima em Project Settings > Environment
    Variables (todas em Production e Preview).
-3. O arquivo `vercel.json` já declara os Cron Jobs:
-   - `sync-bacen` diário — Selic/CDI/IGP-M/IPCA
-   - `sync-ibge` mensal — população do município
-   - `sync-cvm` mensal — rendimento/P-VP médio de FIIs
-   - `recalcular` diário — roda o motor sobre empreendimentos ativos e gera
-     alertas de novo encaixe (Processo 8)
-4. A Vercel injeta automaticamente `Authorization: Bearer $CRON_SECRET` nas
-   chamadas de Cron — por isso `CRON_SECRET` precisa estar configurado.
+3. O arquivo `vercel.json` já declara o Cron Job `sync-bacen` (diário —
+   Selic/CDI/IGP-M/IPCA). A Vercel injeta automaticamente
+   `Authorization: Bearer $CRON_SECRET` na chamada — por isso `CRON_SECRET`
+   precisa estar configurado.
 
-## Fluxo (Processos 1-9, ver documento de arquitetura)
+## Papéis
 
-1. **Perfil** — onboarding com 3 perguntas essenciais (objetivo, prazo,
-   liquidez) + refinamento opcional (tolerância a risco, observações)
-2. **Dados** — empreendimento, bairro, macro (automatizados: Bacen/IBGE/CVM;
-   manuais: renda/densidade por bairro, plano diretor, valor venal — replica a
-   decisão do slide 9 do documento original)
-3. **Scores** — valorização e renda, 0-100, recalculados por `recalcularScoresEempreendimento`
-4. **Matching** — encaixe perfil×score, com penalidades por liquidez/risco
-5. **Cenários** — pessimista/base/otimista via Monte Carlo (percentis 10/50/90)
-6. **Dashboards + PDF + alertas** — implementados
-7. **Calibração + selo de confiança** — schema e função de cálculo prontos
-   (`calcularSeloConfianca`); a **coleta** de projeção-vs-realizado 6/12 meses
-   depois ainda depende de alimentação manual ou de uma fonte de avaliação
-   futura — não há automação para isso ainda
+- **admin** / **gestor** — podem criar/editar/excluir construtoras, imóveis,
+  regiões e indicadores.
+- **corretor** — gerencia clientes, interações e simulações; leitura em tudo
+  mais.
 
 ## Pendências conhecidas
 
+- **INCC** e **preço m²/aluguel por região** não têm fonte pública gratuita
+  confiável (FipeZAP não expõe API oficial) — ficam como cadastro manual pela
+  tela Dados (`+ Novo dado`).
 - **`SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET`** precisam ser preenchidos
-  (não foram gerados por segurança) antes do primeiro deploy.
-- **Conector CVM**: o parser lê o CSV mensal de FIIs de forma defensiva (por
-  nome de coluna, não por índice fixo), mas o endpoint não pôde ser testado
-  neste ambiente de desenvolvimento (proxy de rede bloqueia `dados.cvm.gov.br`).
-  Confirme o resultado do job `sync-cvm` após o primeiro deploy.
-- **Renda média/densidade por bairro** continuam cadastro manual, por decisão
-  do próprio documento de arquitetura (dado de setor censitário, sem endpoint
-  automatizável simples).
-- Autenticação testada apenas até a tela de login (o fluxo de link mágico não
-  pôde ser concluído sem acesso a uma caixa de e-mail real neste ambiente).
+  antes do primeiro deploy.
+- Fluxo de autenticação testado via renderização da tela `/login`; o
+  login end-to-end (sessão + navegação autenticada) não pôde ser exercitado
+  neste ambiente de desenvolvimento porque a política de rede do sandbox
+  bloqueia chamadas diretas do navegador ao domínio do Supabase — validar
+  manualmente após o deploy ou em ambiente com rede liberada.
+- "Velocidade de vendas" (tela Tendências) usa apenas 2 pontos reais (data de
+  lançamento → hoje), pois o schema não mantém histórico mensal de unidades
+  disponíveis; para uma série mensal completa seria necessário um snapshot
+  periódico (ex: job diário gravando `unidades_disponiveis` em uma tabela de
+  histórico).

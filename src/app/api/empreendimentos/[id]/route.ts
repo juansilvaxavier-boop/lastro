@@ -1,96 +1,71 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { exigirSessao, exigirPapel } from "@/lib/auth";
 import { empreendimentoSchema } from "@/lib/validation";
-import { exigirAdmin } from "@/lib/admin";
-import { recalcularScoresEempreendimento } from "@/lib/pipeline";
 
-export async function GET(_req: Request, ctx: RouteContext<"/api/empreendimentos/[id]">) {
-  const { id } = await ctx.params;
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await exigirSessao();
+  if ("resposta" in guard) return guard.resposta;
+  const { id } = await params;
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
-
-  const [{ data: empreendimento, error: empError }, { data: cenarios, error: cenariosError }, { data: calibracao }] =
-    await Promise.all([
-      supabase
-        .from("empreendimentos")
-        .select("*, bairros(*)")
-        .eq("id", id)
-        .single(),
-      supabase
-        .from("cenarios")
-        .select("*")
-        .eq("empreendimento_id", id)
-        .order("calculado_em", { ascending: false })
-        .limit(3),
-      supabase
-        .from("calibracao")
-        .select("*")
-        .eq("empreendimento_id", id)
-        .order("created_at", { ascending: false }),
-    ]);
-
-  if (empError) return NextResponse.json({ error: empError.message }, { status: 404 });
-  if (cenariosError) return NextResponse.json({ error: cenariosError.message }, { status: 500 });
-
-  const { data: score } = await supabase
-    .from("scores")
-    .select("*")
-    .eq("empreendimento_id", id)
-    .order("calculado_em", { ascending: false })
-    .limit(1)
+  const { data, error } = await supabase
+    .from("empreendimentos")
+    .select("*, construtora:construtoras(id, nome), bairro:localizacoes(id, nome, parent_id)")
+    .eq("id", id)
     .maybeSingle();
 
-  return NextResponse.json({ empreendimento, score, cenarios, calibracao });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+  return NextResponse.json({ empreendimento: data });
 }
 
-export async function PATCH(request: Request, ctx: RouteContext<"/api/empreendimentos/[id]">) {
-  const { id } = await ctx.params;
-  const supabase = await createClient();
-  const naoAutorizado = await exigirAdmin(supabase);
-  if (naoAutorizado) return naoAutorizado;
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await exigirPapel(["admin", "gestor"]);
+  if ("resposta" in guard) return guard.resposta;
+  const { id } = await params;
 
   const body = await request.json();
   const parsed = empreendimentoSchema.partial().safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-  const e = parsed.data;
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  const d = parsed.data;
 
-  const admin = createAdminClient();
-  const { data, error } = await admin
+  const supabase = await createClient();
+  const { data, error } = await supabase
     .from("empreendimentos")
     .update({
-      ...(e.nome !== undefined && { nome: e.nome }),
-      ...(e.incorporadora !== undefined && { incorporadora: e.incorporadora }),
-      ...(e.bairroId !== undefined && { bairro_id: e.bairroId }),
-      ...(e.endereco !== undefined && { endereco: e.endereco }),
-      ...(e.tipo !== undefined && { tipo: e.tipo }),
-      ...(e.statusObra !== undefined && { status_obra: e.statusObra }),
-      ...(e.dataEntregaPrevista !== undefined && { data_entrega_prevista: e.dataEntregaPrevista }),
-      ...(e.preco !== undefined && { preco: e.preco }),
-      ...(e.areaM2 !== undefined && { area_m2: e.areaM2 }),
-      ...(e.quartos !== undefined && { quartos: e.quartos }),
-      ...(e.vagas !== undefined && { vagas: e.vagas }),
-      ...(e.valorCondominio !== undefined && { valor_condominio: e.valorCondominio }),
-      ...(e.iptuAnual !== undefined && { iptu_anual: e.iptuAnual }),
-      ...(e.aluguelEstimado !== undefined && { aluguel_estimado: e.aluguelEstimado }),
-      ...(e.ativo !== undefined && { ativo: e.ativo }),
-      ...(e.valorVenal !== undefined && { valor_venal: e.valorVenal }),
-      ...(e.dueDiligenceOk !== undefined && { due_diligence_ok: e.dueDiligenceOk }),
-      updated_at: new Date().toISOString(),
+      nome: d.nome,
+      construtora_id: d.construtoraId,
+      bairro_id: d.bairroId,
+      metragem_privativa: d.metragemPrivativa,
+      metragem_total: d.metragemTotal,
+      preco_total: d.precoTotal,
+      data_lancamento: d.dataLancamento,
+      data_entrega_prevista: d.dataEntregaPrevista,
+      data_entrega_real: d.dataEntregaReal,
+      indice_correcao_obra: d.indiceCorrecaoObra,
+      indice_correcao_pos_entrega: d.indiceCorrecaoPosEntrega,
+      status: d.status,
+      unidades_totais: d.unidadesTotais,
+      unidades_disponiveis: d.unidadesDisponiveis,
+      imagem_url: d.imagemUrl,
+      ativo: d.ativo,
     })
     .eq("id", id)
     .select()
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ empreendimento: data });
+}
 
-  // Preco/area/tipo/status podem mudar os scores - recalcula para manter consistente.
-  const scores = await recalcularScoresEempreendimento(admin, id);
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await exigirPapel(["admin", "gestor"]);
+  if ("resposta" in guard) return guard.resposta;
+  const { id } = await params;
 
-  return NextResponse.json({ empreendimento: data, scores });
+  const supabase = await createClient();
+  const { error } = await supabase.from("empreendimentos").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return new NextResponse(null, { status: 204 });
 }
