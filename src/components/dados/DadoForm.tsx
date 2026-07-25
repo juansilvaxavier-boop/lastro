@@ -10,6 +10,7 @@ export function DadoForm({ localizacoes, onSucesso }: { localizacoes: Localizaca
   const [categoria, setCategoria] = useState<"nacional" | "local">("nacional");
   const [tipoIndicador, setTipoIndicador] = useState("selic");
   const [tipoPreco, setTipoPreco] = useState<"venda" | "aluguel">("venda");
+  const [segmentoPreco, setSegmentoPreco] = useState<"residencial" | "comercial">("residencial");
   const [localizacaoId, setLocalizacaoId] = useState("");
   const [valor, setValor] = useState("");
   const [dataReferencia, setDataReferencia] = useState("");
@@ -41,6 +42,7 @@ export function DadoForm({ localizacoes, onSucesso }: { localizacoes: Localizaca
             body: JSON.stringify({
               localizacaoId,
               tipo: tipoPreco,
+              segmento: segmentoPreco,
               valorM2: valorNumero,
               dataReferencia,
             }),
@@ -89,6 +91,16 @@ export function DadoForm({ localizacoes, onSucesso }: { localizacoes: Localizaca
             <select className="input" value={tipoPreco} onChange={(e) => setTipoPreco(e.target.value as typeof tipoPreco)}>
               <option value="venda">Venda</option>
               <option value="aluguel">Aluguel</option>
+            </select>
+          </Field>
+          <Field label="Segmento">
+            <select
+              className="input"
+              value={segmentoPreco}
+              onChange={(e) => setSegmentoPreco(e.target.value as typeof segmentoPreco)}
+            >
+              <option value="residencial">Residencial</option>
+              <option value="comercial">Comercial</option>
             </select>
           </Field>
         </>

@@ -390,6 +390,7 @@ export type Database = {
           data_referencia: string
           id: string
           localizacao_id: string | null
+          segmento: string
           tipo: string
           valor_m2: number
           variacao_anual_12m: number | null
@@ -400,6 +401,7 @@ export type Database = {
           data_referencia: string
           id?: string
           localizacao_id?: string | null
+          segmento?: string
           tipo: string
           valor_m2: number
           variacao_anual_12m?: number | null
@@ -410,6 +412,7 @@ export type Database = {
           data_referencia?: string
           id?: string
           localizacao_id?: string | null
+          segmento?: string
           tipo?: string
           valor_m2?: number
           variacao_anual_12m?: number | null

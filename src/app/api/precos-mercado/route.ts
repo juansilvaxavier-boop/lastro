@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
   if (localizacaoId) query = query.eq("localizacao_id", localizacaoId);
   const tipo = params.get("tipo");
   if (tipo) query = query.eq("tipo", tipo);
+  const segmento = params.get("segmento");
+  if (segmento) query = query.eq("segmento", segmento);
 
   query = query.order("data_referencia", { ascending: true });
 
@@ -38,6 +40,7 @@ export async function POST(request: NextRequest) {
     .insert({
       localizacao_id: d.localizacaoId,
       tipo: d.tipo,
+      segmento: d.segmento ?? "residencial",
       valor_m2: d.valorM2,
       variacao_mensal: d.variacaoMensal,
       variacao_anual_12m: d.variacaoAnual12m,

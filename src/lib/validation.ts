@@ -80,10 +80,27 @@ export const lancarIndicadoresSchema = z.object({
 export const precoMercadoSchema = z.object({
   localizacaoId: z.string().uuid(),
   tipo: z.enum(["venda", "aluguel"]),
+  segmento: z.enum(["residencial", "comercial"]).optional(),
   valorM2: z.number().positive(),
   variacaoMensal: z.number().optional(),
   variacaoAnual12m: z.number().optional(),
   dataReferencia: z.string(),
+});
+
+export const importarPrecosSchema = z.object({
+  localizacaoId: z.string().uuid(),
+  linhas: z
+    .array(
+      z.object({
+        tipo: z.enum(["venda", "aluguel"]),
+        segmento: z.enum(["residencial", "comercial"]),
+        valorM2: z.number().positive(),
+        variacaoMensal: z.number().nullable(),
+        variacaoAnual12m: z.number().nullable(),
+        dataReferencia: z.string(),
+      })
+    )
+    .min(1),
 });
 
 export const favoritoSchema = z.object({

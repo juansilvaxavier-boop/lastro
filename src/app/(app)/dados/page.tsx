@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Field } from "@/components/ui/Field";
 import { CardGridSkeleton } from "@/components/ui/Skeleton";
 import { IndicadorCard } from "@/components/dados/IndicadorCard";
 import { DadoForm } from "@/components/dados/DadoForm";
+import { ImportarPlanilhaModal } from "@/components/dados/ImportarPlanilhaModal";
+import { GraficoCrescimentoPrecos } from "@/components/dados/GraficoCrescimentoPrecos";
 import { TrendChart } from "@/components/TrendChart";
 import { useUsuario, podeEditar } from "@/components/UsuarioContext";
 import { formatarData } from "@/lib/format";
@@ -48,6 +50,8 @@ export default function DadosPage() {
   const [precosLocais, setPrecosLocais] = useState<PrecoMercadoLocal[]>([]);
   const [localizacoes, setLocalizacoes] = useState<Localizacao[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
+  const [modalImportarAberto, setModalImportarAberto] = useState(false);
+  const [abaPrecos, setAbaPrecos] = useState<"tabela" | "grafico">("tabela");
   const [modalSincronizarAberto, setModalSincronizarAberto] = useState(false);
   const [dataInicialSync, setDataInicialSync] = useState(dataIsoMenosAnos(2));
   const [dataFinalSync, setDataFinalSync] = useState(hojeIso());
@@ -146,14 +150,19 @@ export default function DadosPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dados</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Selic, Inflação (IPCA), INCC (correção durante a obra), Preço médio por m² (venda residencial) e Aluguel,
-            IGP-M e CDI
+            Selic, Inflação (IPCA), INCC (correção durante a obra), Preço médio por m² (venda e aluguel, residencial
+            e comercial), IGP-M e CDI
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {editavel && (
             <Button onClick={() => setModalAberto(true)}>
               <Plus size={16} /> Novo dado
+            </Button>
+          )}
+          {editavel && (
+            <Button variant="outline" onClick={() => setModalImportarAberto(true)}>
+              <Upload size={16} /> Importar planilha
             </Button>
           )}
           <Button
@@ -190,33 +199,60 @@ export default function DadosPage() {
         </div>
       )}
 
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-        Preços locais (venda e aluguel por região)
-      </h2>
-      {precosLocais.length === 0 ? (
-        <p className="text-sm text-slate-400">Nenhum preço local cadastrado ainda.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-100 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Localização</th>
-                <th className="px-4 py-3 font-medium">Tipo</th>
-                <th className="px-4 py-3 font-medium">Valor/m²</th>
-                <th className="px-4 py-3 font-medium">Data</th>
-              </tr>
-            </thead>
-            <tbody>
-              {precosLocais.map((p) => (
-                <tr key={p.id} className="border-b border-gray-50 last:border-0">
-                  <td className="px-4 py-3">{p.localizacao?.nome ?? "—"}</td>
-                  <td className="px-4 py-3 capitalize">{p.tipo}</td>
-                  <td className="px-4 py-3">{p.valor_m2.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
-                  <td className="px-4 py-3">{formatarData(p.data_referencia)}</td>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+          Preços locais (venda e aluguel por região)
+        </h2>
+        <div className="flex gap-1 rounded-full bg-gray-100 p-1 text-sm">
+          <button
+            type="button"
+            onClick={() => setAbaPrecos("tabela")}
+            className={`rounded-full px-3 py-1 font-medium ${abaPrecos === "tabela" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+          >
+            Tabela
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaPrecos("grafico")}
+            className={`rounded-full px-3 py-1 font-medium ${abaPrecos === "grafico" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+          >
+            Gráfico de crescimento
+          </button>
+        </div>
+      </div>
+
+      {abaPrecos === "tabela" ? (
+        precosLocais.length === 0 ? (
+          <p className="text-sm text-slate-400">Nenhum preço local cadastrado ainda.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-gray-100 text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Localização</th>
+                  <th className="px-4 py-3 font-medium">Segmento</th>
+                  <th className="px-4 py-3 font-medium">Tipo</th>
+                  <th className="px-4 py-3 font-medium">Valor/m²</th>
+                  <th className="px-4 py-3 font-medium">Data</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {precosLocais.map((p) => (
+                  <tr key={p.id} className="border-b border-gray-50 last:border-0">
+                    <td className="px-4 py-3">{p.localizacao?.nome ?? "—"}</td>
+                    <td className="px-4 py-3 capitalize">{p.segmento}</td>
+                    <td className="px-4 py-3 capitalize">{p.tipo}</td>
+                    <td className="px-4 py-3">{p.valor_m2.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
+                    <td className="px-4 py-3">{formatarData(p.data_referencia)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      ) : (
+        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+          <GraficoCrescimentoPrecos localizacoes={localizacoes} />
         </div>
       )}
 
@@ -228,6 +264,15 @@ export default function DadosPage() {
             carregar();
           }}
         />
+      </Modal>
+
+      <Modal
+        aberto={modalImportarAberto}
+        titulo="Importar planilha de preços"
+        onFechar={() => setModalImportarAberto(false)}
+        largura="max-w-2xl"
+      >
+        <ImportarPlanilhaModal onSucesso={carregar} />
       </Modal>
 
       <Modal
