@@ -24,10 +24,24 @@ interface ResultadoParcelasObra {
   saldoResidualNaEntrega: number;
   financiamentoPosEntrega: ResultadoFinanciamento | null;
 }
+interface ItemFluxo {
+  mes: number;
+  tipo: "entrada" | "mensal" | "balao" | "chaves" | "financiamento";
+  valor: number;
+}
 interface ResultadoFluxo {
   totalPago: number;
-  itens: { mes: number; tipo: string; valor: number }[];
+  itens: ItemFluxo[];
+  financiamento: ResultadoFinanciamento | null;
 }
+
+const LABEL_TIPO_ITEM_FLUXO: Record<ItemFluxo["tipo"], string> = {
+  entrada: "Ato/sinal",
+  mensal: "Parcelas da entrada",
+  balao: "Balões",
+  chaves: "Saldo devedor (à vista na entrega)",
+  financiamento: "Financiamento",
+};
 
 export function CalculadoraModal({
   aberto,
@@ -55,8 +69,23 @@ export function CalculadoraModal({
   const [converter, setConverter] = useState(true);
 
   const [valorEntradaFluxo, setValorEntradaFluxo] = useState("10");
-  const [parcelaMensalFluxo, setParcelaMensalFluxo] = useState("2000");
-  const [quantidadeMensaisFluxo, setQuantidadeMensaisFluxo] = useState("36");
+
+  const [parcelaEntradaValor, setParcelaEntradaValor] = useState("2000");
+  const [parcelaEntradaQtd, setParcelaEntradaQtd] = useState("12");
+  const [parcelaEntradaMesInicial, setParcelaEntradaMesInicial] = useState("1");
+
+  const [incluirBaloes, setIncluirBaloes] = useState(false);
+  const [balaoValor, setBalaoValor] = useState("10000");
+  const [balaoPeriodicidade, setBalaoPeriodicidade] = useState("6");
+  const [balaoQtd, setBalaoQtd] = useState("4");
+  const [balaoMesInicial, setBalaoMesInicial] = useState("");
+
+  const [saldoDevedorValor, setSaldoDevedorValor] = useState("");
+  const [saldoDevedorMes, setSaldoDevedorMes] = useState("36");
+  const [financiarSaldoDevedor, setFinanciarSaldoDevedor] = useState(false);
+  const [saldoDevedorNumParcelas, setSaldoDevedorNumParcelas] = useState("120");
+  const [saldoDevedorTaxaJuros, setSaldoDevedorTaxaJuros] = useState("11");
+  const [saldoDevedorSistema, setSaldoDevedorSistema] = useState<"SAC" | "PRICE">("SAC");
 
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -95,12 +124,42 @@ export function CalculadoraModal({
         sistemaPosEntrega: sistema,
       };
     } else {
+      const qtdParcelasEntrada = paraNumero(parcelaEntradaQtd) ?? 0;
+      const saldoDevedor = paraNumero(saldoDevedorValor) ?? 0;
+
       parametros = {
         valorEntrada: (preco * (paraNumero(valorEntradaFluxo) ?? 0)) / 100,
-        parcelasMensais: {
-          valor: paraNumero(parcelaMensalFluxo) ?? 0,
-          quantidade: paraNumero(quantidadeMensaisFluxo) ?? 0,
-        },
+        parcelasMensais:
+          qtdParcelasEntrada > 0
+            ? {
+                valor: paraNumero(parcelaEntradaValor) ?? 0,
+                quantidade: qtdParcelasEntrada,
+                mesInicial: paraNumero(parcelaEntradaMesInicial) ?? 1,
+              }
+            : undefined,
+        baloes: incluirBaloes
+          ? [
+              {
+                valor: paraNumero(balaoValor) ?? 0,
+                periodicidadeMeses: paraNumero(balaoPeriodicidade) ?? 6,
+                quantidade: paraNumero(balaoQtd) ?? 1,
+                mesInicial: paraNumero(balaoMesInicial) || undefined,
+              },
+            ]
+          : undefined,
+        valorNaEntrega:
+          saldoDevedor > 0 && !financiarSaldoDevedor
+            ? { valor: saldoDevedor, mes: paraNumero(saldoDevedorMes) ?? 0 }
+            : undefined,
+        saldoFinanciado:
+          saldoDevedor > 0 && financiarSaldoDevedor
+            ? {
+                valor: saldoDevedor,
+                numParcelas: paraNumero(saldoDevedorNumParcelas) ?? 120,
+                taxaJurosAnual: (paraNumero(saldoDevedorTaxaJuros) ?? 0) / 100,
+                sistema: saldoDevedorSistema,
+              }
+            : undefined,
       };
     }
 
@@ -202,22 +261,107 @@ export function CalculadoraModal({
 
         {modo === "fluxo_personalizado" && (
           <>
-            <Field label="Entrada (% do preço)">
+            <Field label="Ato/sinal (% do preço)">
               <input className="input" type="number" value={valorEntradaFluxo} onChange={(e) => setValorEntradaFluxo(e.target.value)} />
             </Field>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Parcela mensal (R$)">
-                <input className="input" type="number" value={parcelaMensalFluxo} onChange={(e) => setParcelaMensalFluxo(e.target.value)} />
+
+            <p className="text-sm font-semibold text-slate-700">Parcelas da entrada</p>
+            <div className="grid grid-cols-3 gap-4">
+              <Field label="Valor da parcela (R$)">
+                <input className="input" type="number" value={parcelaEntradaValor} onChange={(e) => setParcelaEntradaValor(e.target.value)} />
               </Field>
-              <Field label="Quantidade de parcelas mensais">
+              <Field label="Quantidade">
+                <input className="input" type="number" value={parcelaEntradaQtd} onChange={(e) => setParcelaEntradaQtd(e.target.value)} />
+              </Field>
+              <Field label="1ª parcela (mês)">
                 <input
                   className="input"
                   type="number"
-                  value={quantidadeMensaisFluxo}
-                  onChange={(e) => setQuantidadeMensaisFluxo(e.target.value)}
+                  value={parcelaEntradaMesInicial}
+                  onChange={(e) => setParcelaEntradaMesInicial(e.target.value)}
                 />
               </Field>
             </div>
+
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <input type="checkbox" checked={incluirBaloes} onChange={(e) => setIncluirBaloes(e.target.checked)} />
+              Balões
+            </label>
+            {incluirBaloes && (
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Valor do balão (R$)">
+                  <input className="input" type="number" value={balaoValor} onChange={(e) => setBalaoValor(e.target.value)} />
+                </Field>
+                <Field label="Quantidade de balões">
+                  <input className="input" type="number" value={balaoQtd} onChange={(e) => setBalaoQtd(e.target.value)} />
+                </Field>
+                <Field label="Periodicidade (meses)">
+                  <input
+                    className="input"
+                    type="number"
+                    value={balaoPeriodicidade}
+                    onChange={(e) => setBalaoPeriodicidade(e.target.value)}
+                  />
+                </Field>
+                <Field label="1º balão (mês, opcional)">
+                  <input
+                    className="input"
+                    type="number"
+                    placeholder={balaoPeriodicidade}
+                    value={balaoMesInicial}
+                    onChange={(e) => setBalaoMesInicial(e.target.value)}
+                  />
+                </Field>
+              </div>
+            )}
+
+            <p className="text-sm font-semibold text-slate-700">Saldo devedor</p>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Valor do saldo devedor (R$)">
+                <input className="input" type="number" value={saldoDevedorValor} onChange={(e) => setSaldoDevedorValor(e.target.value)} />
+              </Field>
+              <Field label="Mês da entrega">
+                <input className="input" type="number" value={saldoDevedorMes} onChange={(e) => setSaldoDevedorMes(e.target.value)} />
+              </Field>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={financiarSaldoDevedor}
+                onChange={(e) => setFinanciarSaldoDevedor(e.target.checked)}
+              />
+              Financiar o saldo devedor (em vez de pagar à vista na entrega)
+            </label>
+            {financiarSaldoDevedor && (
+              <div className="grid grid-cols-3 gap-4">
+                <Field label="Número de parcelas">
+                  <input
+                    className="input"
+                    type="number"
+                    value={saldoDevedorNumParcelas}
+                    onChange={(e) => setSaldoDevedorNumParcelas(e.target.value)}
+                  />
+                </Field>
+                <Field label="Taxa de juros (% a.a.)">
+                  <input
+                    className="input"
+                    type="number"
+                    value={saldoDevedorTaxaJuros}
+                    onChange={(e) => setSaldoDevedorTaxaJuros(e.target.value)}
+                  />
+                </Field>
+                <Field label="Sistema">
+                  <select
+                    className="input"
+                    value={saldoDevedorSistema}
+                    onChange={(e) => setSaldoDevedorSistema(e.target.value as typeof saldoDevedorSistema)}
+                  >
+                    <option value="SAC">SAC</option>
+                    <option value="PRICE">PRICE</option>
+                  </select>
+                </Field>
+              </div>
+            )}
           </>
         )}
 
@@ -261,11 +405,52 @@ export function CalculadoraModal({
             ]} />
           )}
           {modo === "fluxo_personalizado" && (
-            <ResultadoTexto pares={[["Total pago", formatarMoeda((resultado as ResultadoFluxo).totalPago)]]} />
+            <FluxoPersonalizadoResultado resultado={resultado as ResultadoFluxo} />
           )}
         </div>
       )}
     </Modal>
+  );
+}
+
+function FluxoPersonalizadoResultado({ resultado }: { resultado: ResultadoFluxo }) {
+  const grupos = new Map<ItemFluxo["tipo"], { quantidade: number; total: number }>();
+  for (const item of resultado.itens) {
+    const g = grupos.get(item.tipo) ?? { quantidade: 0, total: 0 };
+    g.quantidade += 1;
+    g.total += item.valor;
+    grupos.set(item.tipo, g);
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        {[...grupos.entries()].map(([tipo, g]) => (
+          <div key={tipo} className="flex justify-between gap-2 border-b border-gray-100 pb-1">
+            <dt className="text-slate-500">
+              {LABEL_TIPO_ITEM_FLUXO[tipo]} {g.quantidade > 1 ? `(${g.quantidade}x)` : ""}
+            </dt>
+            <dd className="font-medium text-slate-900">{formatarMoeda(g.total)}</dd>
+          </div>
+        ))}
+      </dl>
+      {resultado.financiamento && (
+        <div>
+          <p className="mb-1 text-sm font-semibold text-slate-700">Saldo devedor financiado</p>
+          <ResultadoTexto
+            pares={[
+              ["1ª parcela", formatarMoeda(resultado.financiamento.parcelaInicial)],
+              ["Última parcela", formatarMoeda(resultado.financiamento.parcelaFinal)],
+              ["Total do financiamento", formatarMoeda(resultado.financiamento.totalPago)],
+            ]}
+          />
+        </div>
+      )}
+      <div className="flex justify-between border-t border-gray-200 pt-2 text-sm font-semibold">
+        <span>Total pago</span>
+        <span>{formatarMoeda(resultado.totalPago)}</span>
+      </div>
+    </div>
   );
 }
 
