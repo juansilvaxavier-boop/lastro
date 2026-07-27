@@ -21,7 +21,10 @@ Tudo em TypeScript, um repo, um deploy:
   IGP-M, IPCA
 - **Mapa de bairros** (`src/components/regioes/MapaCidade.tsx`, Leaflet +
   OpenStreetMap, sem chave de API) — coordenadas buscadas automaticamente via
-  geocodificação gratuita (Nominatim, `src/lib/connectors/geocodificacao.ts`)
+  geocodificação gratuita (Nominatim, `src/lib/connectors/geocodificacao.ts`).
+  Os próprios nomes dos bairros de uma cidade também podem ser descobertos
+  automaticamente (Overpass API/OpenStreetMap, `src/lib/connectors/overpass.ts`)
+  com revisão antes de cadastrar
 - **Assistente de IA** (`src/app/api/assistente`, `src/lib/assistente`) — chat
   interno (texto ou voz) construído com a API da Anthropic (`@anthropic-ai/sdk`,
   modelo `claude-opus-5`), com ferramentas para consultar e criar/editar dados
@@ -143,3 +146,10 @@ O primeiro usuário precisa ser inserido manualmente em `usuarios` (papel
 - O **modo apresentação** não tem estado próprio além do que já existe no
   banco — trocar de cidade ou sair da tela reseta a navegação por slides
   (o cliente cadastrado e os dados ficam salvos normalmente).
+- A **busca automática de bairros** (Overpass API/OpenStreetMap) também não
+  pôde ser testada neste ambiente (mesma restrição de rede do sandbox) —
+  validar após o deploy. Exige que a cidade já tenha coordenadas (buscar
+  antes na aba Mapa da cidade); a busca cobre um raio de ~15km e depende da
+  qualidade do mapeamento OSM na região — bairros não mapeados como
+  `suburb`/`neighbourhood`/`quarter` no OpenStreetMap não aparecem e
+  continuam precisando de cadastro manual.

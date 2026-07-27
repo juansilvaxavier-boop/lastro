@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Plus, MapPin, ChevronRight, Pencil, LocateFixed, Building2, Trash2 } from "lucide-react";
+import { Plus, MapPin, ChevronRight, Pencil, LocateFixed, Building2, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -12,6 +12,7 @@ import { LocalizacaoForm } from "@/components/regioes/LocalizacaoForm";
 import { InfoSocioeconomica } from "@/components/regioes/InfoSocioeconomica";
 import { RankingBairros, type ItemRankingBairro } from "@/components/regioes/RankingBairros";
 import { PontoInteresseForm } from "@/components/regioes/PontoInteresseForm";
+import { DescobrirBairrosModal } from "@/components/regioes/DescobrirBairrosModal";
 import { TrendChart } from "@/components/TrendChart";
 import { CORES_SERIE } from "@/components/ui/ChartLegend";
 import { mesclarSeries } from "@/lib/tendenciasCalc";
@@ -40,6 +41,7 @@ export default function RegioesPage() {
   const [progressoGeocodificacao, setProgressoGeocodificacao] = useState<string | null>(null);
   const [pontosInteresse, setPontosInteresse] = useState<PontoInteresse[]>([]);
   const [modalPontoInteresseAberto, setModalPontoInteresseAberto] = useState<"novo" | PontoInteresse | null>(null);
+  const [modalDescobrirBairrosAberto, setModalDescobrirBairrosAberto] = useState(false);
   const [paraExcluirPonto, setParaExcluirPonto] = useState<PontoInteresse | null>(null);
   const [excluindoPonto, setExcluindoPonto] = useState(false);
   const [geocodificandoPontos, setGeocodificandoPontos] = useState(false);
@@ -282,6 +284,14 @@ export default function RegioesPage() {
         <InfoSocioeconomica localizacao={nivelAtual} editavel={editavel} onAtualizado={carregar} />
       )}
 
+      {nivelAtual?.tipo === "cidade" && editavel && (
+        <div className="mb-8 flex justify-end">
+          <Button variant="outline" onClick={() => setModalDescobrirBairrosAberto(true)}>
+            <Search size={16} /> Buscar bairros no mapa
+          </Button>
+        </div>
+      )}
+
       {nivelAtual?.tipo === "cidade" && bairrosDaCidade.length > 0 && (
         <div className="mb-8">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -479,6 +489,23 @@ export default function RegioesPage() {
         onConfirmar={excluirPontoInteresse}
         onCancelar={() => setParaExcluirPonto(null)}
       />
+
+      {nivelAtual?.tipo === "cidade" && (
+        <Modal
+          aberto={modalDescobrirBairrosAberto}
+          titulo="Buscar bairros no mapa"
+          onFechar={() => setModalDescobrirBairrosAberto(false)}
+          largura="max-w-xl"
+        >
+          <DescobrirBairrosModal
+            cidadeId={nivelAtual.id}
+            onSucesso={() => {
+              setModalDescobrirBairrosAberto(false);
+              carregar();
+            }}
+          />
+        </Modal>
+      )}
     </div>
   );
 }
