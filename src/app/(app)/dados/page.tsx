@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, RefreshCw, Upload } from "lucide-react";
+import { Plus, RefreshCw, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Field } from "@/components/ui/Field";
@@ -10,6 +10,7 @@ import { IndicadorCard } from "@/components/dados/IndicadorCard";
 import { DadoForm } from "@/components/dados/DadoForm";
 import { ImportarPlanilhaModal } from "@/components/dados/ImportarPlanilhaModal";
 import { GraficoCrescimentoPrecos } from "@/components/dados/GraficoCrescimentoPrecos";
+import { ResetarDadosMercadoModal } from "@/components/dados/ResetarDadosMercadoModal";
 import { TrendChart } from "@/components/TrendChart";
 import { useUsuario, podeEditar } from "@/components/UsuarioContext";
 import { formatarData } from "@/lib/format";
@@ -40,6 +41,12 @@ interface PontoPreview {
 
 const LABEL_INDICADOR: Record<string, string> = { selic: "Selic", cdi: "CDI", ipca: "IPCA", igpm: "IGP-M" };
 
+const LABEL_TIPO_PRECO: Record<string, string> = {
+  venda: "Venda",
+  aluguel: "Aluguel",
+  hospedagem: "Hospedagem (Airbnb)",
+};
+
 const NACIONAIS_AUTOMATIZADOS = ["selic", "cdi", "ipca", "igpm"];
 
 export default function DadosPage() {
@@ -51,6 +58,7 @@ export default function DadosPage() {
   const [localizacoes, setLocalizacoes] = useState<Localizacao[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [modalImportarAberto, setModalImportarAberto] = useState(false);
+  const [modalResetarAberto, setModalResetarAberto] = useState(false);
   const [abaPrecos, setAbaPrecos] = useState<"tabela" | "grafico">("tabela");
   const [modalSincronizarAberto, setModalSincronizarAberto] = useState(false);
   const [dataInicialSync, setDataInicialSync] = useState(dataIsoMenosAnos(2));
@@ -150,8 +158,8 @@ export default function DadosPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dados</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Selic, Inflação (IPCA), INCC (correção durante a obra), Preço médio por m² (venda e aluguel, residencial
-            e comercial), IGP-M e CDI
+            Selic, Inflação (IPCA), INCC (correção durante a obra), Preço médio por m² (venda, aluguel e hospedagem,
+            residencial e comercial), IGP-M e CDI
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -177,6 +185,11 @@ export default function DadosPage() {
           >
             <RefreshCw size={16} className={sincronizando ? "animate-spin" : ""} /> Sincronizar agora
           </Button>
+          {usuario.papel === "admin" && (
+            <Button variant="danger" onClick={() => setModalResetarAberto(true)}>
+              <Trash2 size={16} /> Resetar dados
+            </Button>
+          )}
         </div>
       </div>
 
@@ -201,7 +214,7 @@ export default function DadosPage() {
 
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-          Preços locais (venda e aluguel por região)
+          Preços locais (venda, aluguel e hospedagem por região)
         </h2>
         <div className="flex gap-1 rounded-full bg-gray-100 p-1 text-sm">
           <button
@@ -232,7 +245,7 @@ export default function DadosPage() {
                   <th className="px-4 py-3 font-medium">Localização</th>
                   <th className="px-4 py-3 font-medium">Segmento</th>
                   <th className="px-4 py-3 font-medium">Tipo</th>
-                  <th className="px-4 py-3 font-medium">Valor/m²</th>
+                  <th className="px-4 py-3 font-medium">Valor</th>
                   <th className="px-4 py-3 font-medium">Data</th>
                 </tr>
               </thead>
@@ -241,7 +254,7 @@ export default function DadosPage() {
                   <tr key={p.id} className="border-b border-gray-50 last:border-0">
                     <td className="px-4 py-3">{p.localizacao?.nome ?? "—"}</td>
                     <td className="px-4 py-3 capitalize">{p.segmento}</td>
-                    <td className="px-4 py-3 capitalize">{p.tipo}</td>
+                    <td className="px-4 py-3">{LABEL_TIPO_PRECO[p.tipo] ?? p.tipo}</td>
                     <td className="px-4 py-3">{p.valor_m2.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
                     <td className="px-4 py-3">{formatarData(p.data_referencia)}</td>
                   </tr>
@@ -273,6 +286,20 @@ export default function DadosPage() {
         largura="max-w-2xl"
       >
         <ImportarPlanilhaModal onSucesso={carregar} />
+      </Modal>
+
+      <Modal
+        aberto={modalResetarAberto}
+        titulo="Resetar dados de mercado"
+        onFechar={() => setModalResetarAberto(false)}
+        largura="max-w-xl"
+      >
+        <ResetarDadosMercadoModal
+          onSucesso={() => {
+            setModalResetarAberto(false);
+            carregar();
+          }}
+        />
       </Modal>
 
       <Modal

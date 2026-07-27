@@ -79,7 +79,7 @@ export const lancarIndicadoresSchema = z.object({
 
 export const precoMercadoSchema = z.object({
   localizacaoId: z.string().uuid(),
-  tipo: z.enum(["venda", "aluguel"]),
+  tipo: z.enum(["venda", "aluguel", "hospedagem"]),
   segmento: z.enum(["residencial", "comercial"]).optional(),
   valorM2: z.number().positive(),
   variacaoMensal: z.number().optional(),

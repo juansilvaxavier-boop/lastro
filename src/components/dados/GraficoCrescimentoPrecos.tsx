@@ -33,9 +33,18 @@ export function GraficoCrescimentoPrecos({ localizacoes }: { localizacoes: Local
   const serieAluguel = indexarBase100(
     precos.filter((p) => p.tipo === "aluguel").map((p) => ({ data: p.data_referencia, valor: p.valor_m2 }))
   );
+  const serieHospedagem = indexarBase100(
+    precos.filter((p) => p.tipo === "hospedagem").map((p) => ({ data: p.data_referencia, valor: p.valor_m2 }))
+  );
 
-  const dadosGrafico = mesclarSeries({ Venda: serieVenda, Aluguel: serieAluguel });
+  const dadosGrafico = mesclarSeries({ Venda: serieVenda, Aluguel: serieAluguel, Hospedagem: serieHospedagem });
   const localizacoesOrdenadas = [...localizacoes].sort((a, b) => a.nome.localeCompare(b.nome));
+
+  const seriesDisponiveis = [
+    serieVenda.length > 0 && { key: "Venda", label: "Venda", color: CORES_SERIE[0] },
+    serieAluguel.length > 0 && { key: "Aluguel", label: "Aluguel", color: CORES_SERIE[1] },
+    serieHospedagem.length > 0 && { key: "Hospedagem", label: "Hospedagem (Airbnb)", color: CORES_SERIE[2] },
+  ].filter((s): s is { key: string; label: string; color: string } => Boolean(s));
 
   return (
     <div>
@@ -66,14 +75,7 @@ export function GraficoCrescimentoPrecos({ localizacoes }: { localizacoes: Local
         <p className="text-sm text-slate-400">Nenhum preço {segmento} cadastrado para essa localização.</p>
       )}
       {dadosGrafico.length > 0 && (
-        <TrendChart
-          titulo="Crescimento do preço por m² (base 100)"
-          series={[
-            { key: "Venda", label: "Venda", color: CORES_SERIE[0] },
-            { key: "Aluguel", label: "Aluguel", color: CORES_SERIE[1] },
-          ]}
-          dados={dadosGrafico}
-        />
+        <TrendChart titulo="Crescimento do preço (base 100)" series={seriesDisponiveis} dados={dadosGrafico} />
       )}
     </div>
   );

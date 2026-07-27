@@ -565,6 +565,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      resetar_dados_mercado: { Args: never; Returns: undefined }
       usuario_ativo: { Args: never; Returns: boolean }
       usuario_papel: { Args: never; Returns: string }
     }

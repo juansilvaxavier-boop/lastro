@@ -9,7 +9,7 @@ import type { Localizacao } from "@/types/dominio";
 export function DadoForm({ localizacoes, onSucesso }: { localizacoes: Localizacao[]; onSucesso: () => void }) {
   const [categoria, setCategoria] = useState<"nacional" | "local">("nacional");
   const [tipoIndicador, setTipoIndicador] = useState("selic");
-  const [tipoPreco, setTipoPreco] = useState<"venda" | "aluguel">("venda");
+  const [tipoPreco, setTipoPreco] = useState<"venda" | "aluguel" | "hospedagem">("venda");
   const [segmentoPreco, setSegmentoPreco] = useState<"residencial" | "comercial">("residencial");
   const [localizacaoId, setLocalizacaoId] = useState("");
   const [valor, setValor] = useState("");
@@ -61,7 +61,7 @@ export function DadoForm({ localizacoes, onSucesso }: { localizacoes: Localizaca
       <Field label="Categoria">
         <select className="input" value={categoria} onChange={(e) => setCategoria(e.target.value as typeof categoria)}>
           <option value="nacional">Indicador nacional (Selic, CDI, IPCA, IGP-M, INCC)</option>
-          <option value="local">Preço local (venda/aluguel por região)</option>
+          <option value="local">Preço local (venda/aluguel/hospedagem por região)</option>
         </select>
       </Field>
 
@@ -91,6 +91,7 @@ export function DadoForm({ localizacoes, onSucesso }: { localizacoes: Localizaca
             <select className="input" value={tipoPreco} onChange={(e) => setTipoPreco(e.target.value as typeof tipoPreco)}>
               <option value="venda">Venda</option>
               <option value="aluguel">Aluguel</option>
+              <option value="hospedagem">Hospedagem (Airbnb)</option>
             </select>
           </Field>
           <Field label="Segmento">
@@ -106,7 +107,15 @@ export function DadoForm({ localizacoes, onSucesso }: { localizacoes: Localizaca
         </>
       )}
 
-      <Field label={categoria === "nacional" ? "Valor (% a.a.)" : "Valor por m² (R$)"}>
+      <Field
+        label={
+          categoria === "nacional"
+            ? "Valor (% a.a.)"
+            : tipoPreco === "hospedagem"
+              ? "Diária média (R$)"
+              : "Valor por m² (R$)"
+        }
+      >
         <input className="input" type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} required />
       </Field>
       <Field label="Data de referência">
