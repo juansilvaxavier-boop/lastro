@@ -11,6 +11,7 @@ import { DadoForm } from "@/components/dados/DadoForm";
 import { ImportarPlanilhaModal } from "@/components/dados/ImportarPlanilhaModal";
 import { GraficoCrescimentoPrecos } from "@/components/dados/GraficoCrescimentoPrecos";
 import { ResetarDadosMercadoModal } from "@/components/dados/ResetarDadosMercadoModal";
+import { CenarioMacroBloco } from "@/components/dados/CenarioMacroBloco";
 import { TrendChart } from "@/components/TrendChart";
 import { useUsuario, podeEditar } from "@/components/UsuarioContext";
 import { formatarData } from "@/lib/format";
@@ -192,6 +193,8 @@ export default function DadosPage() {
           )}
         </div>
       </div>
+
+      <CenarioMacroBloco editavel={editavel} />
 
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Indicadores nacionais</h2>
       {indicadores === null ? (

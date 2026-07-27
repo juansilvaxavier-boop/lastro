@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      cenario_macro: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          id: string
+          texto: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          texto: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cenario_macro_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cliente_imovel_interesse: {
         Row: {
           cliente_id: string
@@ -52,6 +81,7 @@ export type Database = {
           corretor_responsavel_id: string | null
           created_at: string
           email: string | null
+          estrategia_saida: string | null
           etapa_funil: string
           forma_pagamento_pretendida: string | null
           id: string
@@ -59,15 +89,18 @@ export type Database = {
           orcamento_max: number | null
           orcamento_min: number | null
           origem_lead: string | null
+          parcela_maxima_mensal: number | null
           perfil: string | null
           renda_informada: number | null
           telefone: string | null
           updated_at: string
+          valor_entrada_disponivel: number | null
         }
         Insert: {
           corretor_responsavel_id?: string | null
           created_at?: string
           email?: string | null
+          estrategia_saida?: string | null
           etapa_funil?: string
           forma_pagamento_pretendida?: string | null
           id?: string
@@ -75,15 +108,18 @@ export type Database = {
           orcamento_max?: number | null
           orcamento_min?: number | null
           origem_lead?: string | null
+          parcela_maxima_mensal?: number | null
           perfil?: string | null
           renda_informada?: number | null
           telefone?: string | null
           updated_at?: string
+          valor_entrada_disponivel?: number | null
         }
         Update: {
           corretor_responsavel_id?: string | null
           created_at?: string
           email?: string | null
+          estrategia_saida?: string | null
           etapa_funil?: string
           forma_pagamento_pretendida?: string | null
           id?: string
@@ -91,10 +127,12 @@ export type Database = {
           orcamento_max?: number | null
           orcamento_min?: number | null
           origem_lead?: string | null
+          parcela_maxima_mensal?: number | null
           perfil?: string | null
           renda_informada?: number | null
           telefone?: string | null
           updated_at?: string
+          valor_entrada_disponivel?: number | null
         }
         Relationships: [
           {
@@ -155,6 +193,7 @@ export type Database = {
           metragem_privativa: number | null
           metragem_total: number | null
           nome: string
+          observacao_valorizacao: string | null
           percentual_vendido: number | null
           preco_m2: number | null
           preco_total: number
@@ -178,6 +217,7 @@ export type Database = {
           metragem_privativa?: number | null
           metragem_total?: number | null
           nome: string
+          observacao_valorizacao?: string | null
           percentual_vendido?: number | null
           preco_m2?: number | null
           preco_total: number
@@ -201,6 +241,7 @@ export type Database = {
           metragem_privativa?: number | null
           metragem_total?: number | null
           nome?: string
+          observacao_valorizacao?: string | null
           percentual_vendido?: number | null
           preco_m2?: number | null
           preco_total?: number
@@ -384,6 +425,53 @@ export type Database = {
           {
             foreignKeyName: "localizacoes_parent_id_fkey"
             columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "localizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pontos_interesse: {
+        Row: {
+          cidade_id: string
+          created_at: string
+          descricao: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nome: string
+          previsao_conclusao: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          cidade_id: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome: string
+          previsao_conclusao?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          cidade_id?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome?: string
+          previsao_conclusao?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pontos_interesse_cidade_id_fkey"
+            columns: ["cidade_id"]
             isOneToOne: false
             referencedRelation: "localizacoes"
             referencedColumns: ["id"]

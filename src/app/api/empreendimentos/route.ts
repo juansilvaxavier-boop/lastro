@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { exigirSessao, exigirPapel } from "@/lib/auth";
 import { empreendimentoSchema } from "@/lib/validation";
+import { calcularValorizacaoDesdeData } from "@/lib/engine";
 
 export async function GET(request: NextRequest) {
   const guard = await exigirSessao();
@@ -40,8 +41,33 @@ export async function GET(request: NextRequest) {
     .eq("usuario_id", guard.usuario.id);
   const idsFavoritos = new Set((favoritos ?? []).map((f) => f.empreendimento_id));
 
+  const bairroIds = [...new Set(data.map((e) => e.bairro_id).filter((x): x is string => !!x))];
+  const { data: precosVenda } = bairroIds.length
+    ? await supabase
+        .from("precos_mercado_local")
+        .select("localizacao_id, data_referencia, valor_m2")
+        .in("localizacao_id", bairroIds)
+        .eq("tipo", "venda")
+        .eq("segmento", "residencial")
+    : { data: [] as { localizacao_id: string | null; data_referencia: string; valor_m2: number }[] };
+
+  const historicoPorBairro = new Map<string, { dataReferencia: string; valorM2: number }[]>();
+  for (const p of precosVenda ?? []) {
+    if (!p.localizacao_id) continue;
+    const lista = historicoPorBairro.get(p.localizacao_id) ?? [];
+    lista.push({ dataReferencia: p.data_referencia, valorM2: p.valor_m2 });
+    historicoPorBairro.set(p.localizacao_id, lista);
+  }
+
   return NextResponse.json({
-    empreendimentos: data.map((e) => ({ ...e, favoritado: idsFavoritos.has(e.id) })),
+    empreendimentos: data.map((e) => ({
+      ...e,
+      favoritado: idsFavoritos.has(e.id),
+      valorizacaoBairroDesdeLancamento:
+        e.bairro_id && e.data_lancamento
+          ? calcularValorizacaoDesdeData(historicoPorBairro.get(e.bairro_id) ?? [], e.data_lancamento)
+          : null,
+    })),
   });
 }
 
@@ -74,6 +100,7 @@ export async function POST(request: NextRequest) {
       unidades_disponiveis: d.unidadesDisponiveis,
       imagem_url: d.imagemUrl,
       ativo: d.ativo ?? true,
+      observacao_valorizacao: d.observacaoValorizacao,
     })
     .select()
     .single();

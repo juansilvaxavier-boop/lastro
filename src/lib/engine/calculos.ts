@@ -95,6 +95,23 @@ export function projetarValorRevenda(params: {
   return pontos;
 }
 
+/**
+ * Valorizacao do bairro desde uma data de referencia (ex: lancamento de um
+ * empreendimento), usando o historico de preco/m2 de venda daquele bairro.
+ * Representa "se voce tivesse comprado nesse bairro naquela epoca, o m2 local
+ * valorizou X% ate hoje" — nao e o preco de revenda do imovel especifico.
+ */
+export function calcularValorizacaoDesdeData(
+  historicoVenda: { dataReferencia: string; valorM2: number }[],
+  dataReferenciaInicial: string
+): number | null {
+  const ordenado = [...historicoVenda].sort((a, b) => a.dataReferencia.localeCompare(b.dataReferencia));
+  const primeiro = ordenado.find((p) => p.dataReferencia >= dataReferenciaInicial) ?? ordenado[0];
+  const ultimo = ordenado[ordenado.length - 1];
+  if (!primeiro || !ultimo || primeiro === ultimo || !primeiro.valorM2) return null;
+  return arred((ultimo.valorM2 - primeiro.valorM2) / primeiro.valorM2);
+}
+
 /** Indicador "lead esfriando": sem interacao ha mais de N dias (padrao 14). */
 export function estaEsfriando(ultimaInteracaoEm: string | null, limiteDias = 14): boolean {
   if (!ultimaInteracaoEm) return true;

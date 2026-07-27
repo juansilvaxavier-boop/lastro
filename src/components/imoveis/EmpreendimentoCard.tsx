@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark } from "lucide-react";
+import { Bookmark, TrendingUp, TrendingDown } from "lucide-react";
 import { PlaceholderIllustration } from "@/components/PlaceholderIllustration";
 import { formatarMoeda, formatarData, formatarPercentual } from "@/lib/format";
 import { LABEL_STATUS_EMPREENDIMENTO } from "@/types/dominio";
@@ -51,6 +51,19 @@ export function EmpreendimentoCard({
         <p>{e.bairro?.nome ?? "Localização não informada"}</p>
         <p>Entrega: {formatarData(e.data_entrega_prevista)}</p>
       </div>
+
+      {e.valorizacaoBairroDesdeLancamento !== null && e.valorizacaoBairroDesdeLancamento !== undefined && (
+        <p
+          className={`mt-2 flex items-center gap-1 text-xs font-medium ${
+            e.valorizacaoBairroDesdeLancamento >= 0 ? "text-emerald-600" : "text-red-600"
+          }`}
+        >
+          {e.valorizacaoBairroDesdeLancamento >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+          Bairro {e.valorizacaoBairroDesdeLancamento >= 0 ? "valorizou" : "desvalorizou"}{" "}
+          {formatarPercentual(Math.abs(e.valorizacaoBairroDesdeLancamento), 0)} desde o lançamento
+        </p>
+      )}
+      {e.observacao_valorizacao && <p className="mt-1 text-xs text-slate-500">{e.observacao_valorizacao}</p>}
 
       <div className="mt-3 flex justify-end">
         <button

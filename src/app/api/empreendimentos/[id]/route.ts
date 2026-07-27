@@ -50,6 +50,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       unidades_disponiveis: d.unidadesDisponiveis,
       imagem_url: d.imagemUrl,
       ativo: d.ativo,
+      observacao_valorizacao: d.observacaoValorizacao,
     })
     .eq("id", id)
     .select()

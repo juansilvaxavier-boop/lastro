@@ -99,6 +99,9 @@ export async function POST(request: NextRequest) {
       orcamento_max: d.orcamentoMax,
       forma_pagamento_pretendida: d.formaPagamentoPretendida,
       renda_informada: d.rendaInformada,
+      valor_entrada_disponivel: d.valorEntradaDisponivel,
+      parcela_maxima_mensal: d.parcelaMaximaMensal,
+      estrategia_saida: d.estrategiaSaida,
     })
     .select()
     .single();

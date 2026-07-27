@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ClienteCard } from "@/components/clientes/ClienteCard";
 import { ClienteForm } from "@/components/clientes/ClienteForm";
 import { InteracoesPainel } from "@/components/clientes/InteracoesPainel";
+import { RecomendacoesPainel } from "@/components/clientes/RecomendacoesPainel";
 import { ETAPAS_FUNIL, LABEL_ETAPA_FUNIL } from "@/types/dominio";
 import type { Cliente, Usuario, Empreendimento } from "@/types/dominio";
 
@@ -144,7 +145,12 @@ export default function ClientesPage() {
             carregar();
           }}
         />
-        {modalAberto !== "novo" && modalAberto !== null && <InteracoesPainel clienteId={modalAberto.id} />}
+        {modalAberto !== "novo" && modalAberto !== null && (
+          <>
+            <RecomendacoesPainel clienteId={modalAberto.id} />
+            <InteracoesPainel clienteId={modalAberto.id} />
+          </>
+        )}
       </Modal>
     </div>
   );

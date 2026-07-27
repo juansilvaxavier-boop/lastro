@@ -27,6 +27,16 @@ Tudo em TypeScript, um repo, um deploy:
   modelo `claude-opus-5`), com ferramentas para consultar e criar/editar dados
   do CRM (clientes, imóveis, construtoras, interações) e busca na web nativa —
   visível apenas para `admin`/`gestor`
+- **Comparador de estratégias** (`src/lib/engine/comparador.ts`) — cruza a
+  capacidade financeira do cliente (entrada disponível, parcela máxima,
+  estratégia de saída) com cada imóvel ativo: viabilidade de financiamento,
+  ROI sobre capital próprio, comparativo com renda fixa líquida de IR e
+  "custo do atraso" (quanto o imóvel encarece por mês de espera)
+- **Modo apresentação** (`/apresentacao`) — sequência em tela cheia pensada
+  para reunião com cliente: cenário macro → dados da cidade → mapa com
+  bairros mais valorizados e infraestrutura futura → casos de sucesso
+  (valorização real desde o lançamento) → captura de dados do cliente →
+  recomendação personalizada
 - `recharts` para os gráficos, `lucide-react` para os ícones
 
 ## Estrutura
@@ -43,9 +53,11 @@ src/
   components/
     ui/               primitivos (Button, Card, Modal, ConfirmDialog...)
     imoveis/ clientes/ construtoras/ regioes/ dados/ tendencias/ assistente/
+    apresentacao/     slides do modo apresentacao (reusa os componentes acima)
   app/
     (app)/            paginas autenticadas: tendencias, imoveis, clientes,
                        construtoras, regioes, dados
+    apresentacao/      modo apresentacao em tela cheia (fora do Shell/sidebar)
     login/            login (e-mail + senha)
     api/               rotas REST + job de sistema (sync-bacen) + assistente
 ```
@@ -119,4 +131,15 @@ O primeiro usuário precisa ser inserido manualmente em `usuarios` (papel
   manualmente após o deploy. Nominatim é gratuito mas tem limite de 1
   requisição/segundo e pode não encontrar bairros com nomes muito genéricos ou
   ambíguos; nesses casos o bairro fica sem coordenada (não aparece no mapa) até
-  ser corrigido manualmente.
+  ser corrigido manualmente. O mesmo vale para os pontos de interesse
+  (infraestrutura futura) cadastrados no mapa.
+- O **comparador de estratégias** projeta valorização usando a variação anual
+  observada no histórico de preços do bairro (quando existe); sem esse
+  histórico, o ganho de capital projetado fica em branco e só a viabilidade
+  de financiamento é calculada. "Taxa de ocupação/liquidez de revenda" de um
+  empreendimento não é calculável automaticamente (não existe fonte pública
+  nem dado de mercado secundário no sistema) — fica como campo manual opcional
+  (`observação de valorização/liquidez`) no cadastro do imóvel.
+- O **modo apresentação** não tem estado próprio além do que já existe no
+  banco — trocar de cidade ou sair da tela reseta a navegação por slides
+  (o cliente cadastrado e os dados ficam salvos normalmente).

@@ -52,6 +52,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       orcamento_max: d.orcamentoMax,
       forma_pagamento_pretendida: d.formaPagamentoPretendida,
       renda_informada: d.rendaInformada,
+      valor_entrada_disponivel: d.valorEntradaDisponivel,
+      parcela_maxima_mensal: d.parcelaMaximaMensal,
+      estrategia_saida: d.estrategiaSaida,
     })
     .eq("id", id)
     .select()

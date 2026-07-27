@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { paraNumero } from "@/lib/format";
-import { ETAPAS_FUNIL, LABEL_ETAPA_FUNIL } from "@/types/dominio";
+import { ETAPAS_FUNIL, LABEL_ETAPA_FUNIL, ESTRATEGIAS_SAIDA, LABEL_ESTRATEGIA_SAIDA } from "@/types/dominio";
 import type { Cliente, Usuario, Empreendimento } from "@/types/dominio";
 
 export function ClienteForm({
@@ -31,6 +31,11 @@ export function ClienteForm({
     cliente?.forma_pagamento_pretendida ?? "financiado"
   );
   const [rendaInformada, setRendaInformada] = useState(String(cliente?.renda_informada ?? ""));
+  const [valorEntradaDisponivel, setValorEntradaDisponivel] = useState(
+    String(cliente?.valor_entrada_disponivel ?? "")
+  );
+  const [parcelaMaximaMensal, setParcelaMaximaMensal] = useState(String(cliente?.parcela_maxima_mensal ?? ""));
+  const [estrategiaSaida, setEstrategiaSaida] = useState(cliente?.estrategia_saida ?? "");
   const [empreendimentoInteresseId, setEmpreendimentoInteresseId] = useState(
     cliente?.imovelInteresse?.id ?? ""
   );
@@ -55,6 +60,9 @@ export function ClienteForm({
       formaPagamentoPretendida,
       rendaInformada: paraNumero(rendaInformada),
       empreendimentoInteresseId: empreendimentoInteresseId || undefined,
+      valorEntradaDisponivel: paraNumero(valorEntradaDisponivel) ?? null,
+      parcelaMaximaMensal: paraNumero(parcelaMaximaMensal) ?? null,
+      estrategiaSaida: estrategiaSaida || null,
     };
 
     const res = await fetch(cliente ? `/api/clientes/${cliente.id}` : "/api/clientes", {
@@ -169,6 +177,36 @@ export function ClienteForm({
           <input className="input" type="number" value={rendaInformada} onChange={(e) => setRendaInformada(e.target.value)} />
         </Field>
       </div>
+
+      <p className="text-sm font-semibold text-slate-700">Capacidade financeira</p>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Entrada disponível (R$)">
+          <input
+            className="input"
+            type="number"
+            value={valorEntradaDisponivel}
+            onChange={(e) => setValorEntradaDisponivel(e.target.value)}
+          />
+        </Field>
+        <Field label="Parcela máxima que consegue pagar (R$/mês)">
+          <input
+            className="input"
+            type="number"
+            value={parcelaMaximaMensal}
+            onChange={(e) => setParcelaMaximaMensal(e.target.value)}
+          />
+        </Field>
+      </div>
+      <Field label="Estratégia de saída">
+        <select className="input" value={estrategiaSaida ?? ""} onChange={(e) => setEstrategiaSaida(e.target.value)}>
+          <option value="">—</option>
+          {ESTRATEGIAS_SAIDA.map((e) => (
+            <option key={e} value={e}>
+              {LABEL_ESTRATEGIA_SAIDA[e]}
+            </option>
+          ))}
+        </select>
+      </Field>
 
       {erro && <p className="text-sm text-red-600">{erro}</p>}
       <Button type="submit" disabled={enviando} className="mt-2">

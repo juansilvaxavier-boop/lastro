@@ -2,7 +2,7 @@
 
 import { Flame } from "lucide-react";
 import { estaEsfriando } from "@/lib/engine";
-import { ETAPAS_FUNIL, LABEL_ETAPA_FUNIL } from "@/types/dominio";
+import { ETAPAS_FUNIL, LABEL_ETAPA_FUNIL, LABEL_ESTRATEGIA_SAIDA } from "@/types/dominio";
 import type { Cliente } from "@/types/dominio";
 
 const LABEL_PERFIL: Record<string, string> = {
@@ -36,6 +36,12 @@ export function ClienteCard({
         {cliente.telefone && <p className="text-sm text-slate-600">{cliente.telefone}</p>}
         {cliente.email && <p className="truncate text-sm text-slate-600">{cliente.email}</p>}
         {cliente.perfil && <p className="text-xs text-slate-500">{LABEL_PERFIL[cliente.perfil] ?? cliente.perfil}</p>}
+        {cliente.estrategia_saida && (
+          <p className="text-xs text-slate-500">
+            {LABEL_ESTRATEGIA_SAIDA[cliente.estrategia_saida as keyof typeof LABEL_ESTRATEGIA_SAIDA] ??
+              cliente.estrategia_saida}
+          </p>
+        )}
         {cliente.imovelInteresse && (
           <p className="mt-1 truncate text-xs font-medium text-blue-700">{cliente.imovelInteresse.nome}</p>
         )}

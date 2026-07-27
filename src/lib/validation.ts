@@ -32,6 +32,7 @@ export const empreendimentoSchema = z.object({
   unidadesDisponiveis: z.number().int().min(0),
   imagemUrl: z.string().url().optional(),
   ativo: z.boolean().optional(),
+  observacaoValorizacao: z.string().max(1000).nullable().optional(),
 });
 
 export const clienteSchema = z.object({
@@ -47,6 +48,9 @@ export const clienteSchema = z.object({
   formaPagamentoPretendida: z.enum(["a_vista", "financiado", "misto"]).optional(),
   rendaInformada: z.number().min(0).optional(),
   empreendimentoInteresseId: z.string().uuid().optional(),
+  valorEntradaDisponivel: z.number().min(0).nullable().optional(),
+  parcelaMaximaMensal: z.number().min(0).nullable().optional(),
+  estrategiaSaida: z.enum(["ganho_capital", "renda_aluguel", "patrimonial"]).nullable().optional(),
 });
 
 export const interacaoSchema = z.object({
@@ -105,6 +109,18 @@ export const importarPrecosSchema = z.object({
 
 export const favoritoSchema = z.object({
   empreendimentoId: z.string().uuid(),
+});
+
+export const pontoInteresseSchema = z.object({
+  cidadeId: z.string().uuid(),
+  nome: z.string().min(1),
+  tipo: z.enum(["shopping", "hospital", "universidade", "via", "outro"]),
+  descricao: z.string().max(500).optional(),
+  previsaoConclusao: z.string().nullable().optional(),
+});
+
+export const cenarioMacroSchema = z.object({
+  texto: z.string().min(1).max(4000),
 });
 
 export const simulacaoSchema = z.object({

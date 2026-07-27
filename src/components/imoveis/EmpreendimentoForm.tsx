@@ -36,6 +36,7 @@ export function EmpreendimentoForm({
     String(empreendimento?.unidades_disponiveis ?? "0")
   );
   const [imagemUrl, setImagemUrl] = useState(empreendimento?.imagem_url ?? "");
+  const [observacaoValorizacao, setObservacaoValorizacao] = useState(empreendimento?.observacao_valorizacao ?? "");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
@@ -60,6 +61,7 @@ export function EmpreendimentoForm({
       unidadesTotais: paraNumero(unidadesTotais) ?? 0,
       unidadesDisponiveis: paraNumero(unidadesDisponiveis) ?? 0,
       imagemUrl: imagemUrl || undefined,
+      observacaoValorizacao: observacaoValorizacao || null,
     };
 
     const res = await fetch(empreendimento ? `/api/empreendimentos/${empreendimento.id}` : "/api/empreendimentos", {
@@ -221,6 +223,15 @@ export function EmpreendimentoForm({
 
       <Field label="URL da imagem (opcional)">
         <input className="input" value={imagemUrl} onChange={(e) => setImagemUrl(e.target.value)} />
+      </Field>
+
+      <Field label="Observação de valorização/liquidez (opcional, aparece no card)">
+        <input
+          className="input"
+          value={observacaoValorizacao ?? ""}
+          onChange={(e) => setObservacaoValorizacao(e.target.value)}
+          placeholder="ex: vendeu 90% das unidades em 8 meses"
+        />
       </Field>
 
       {erro && <p className="text-sm text-red-600">{erro}</p>}

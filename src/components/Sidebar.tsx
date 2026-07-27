@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { TrendingUp, Home, User, HardHat, MapPin, Database } from "lucide-react";
+import { TrendingUp, Home, User, HardHat, MapPin, Database, Presentation } from "lucide-react";
 
 const LINKS = [
   { href: "/tendencias", label: "Tendências", icon: TrendingUp },
@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/construtoras", label: "Construtoras", icon: HardHat },
   { href: "/regioes", label: "Regiões", icon: MapPin },
   { href: "/dados", label: "Dados", icon: Database },
+  { href: "/apresentacao", label: "Modo apresentação", icon: Presentation },
 ];
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {

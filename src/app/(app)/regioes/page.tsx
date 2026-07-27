@@ -2,20 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Plus, MapPin, ChevronRight, Pencil, LocateFixed } from "lucide-react";
+import { Plus, MapPin, ChevronRight, Pencil, LocateFixed, Building2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { CardGridSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LocalizacaoForm } from "@/components/regioes/LocalizacaoForm";
 import { InfoSocioeconomica } from "@/components/regioes/InfoSocioeconomica";
 import { RankingBairros, type ItemRankingBairro } from "@/components/regioes/RankingBairros";
+import { PontoInteresseForm } from "@/components/regioes/PontoInteresseForm";
 import { TrendChart } from "@/components/TrendChart";
 import { CORES_SERIE } from "@/components/ui/ChartLegend";
 import { mesclarSeries } from "@/lib/tendenciasCalc";
 import { useUsuario, podeEditar } from "@/components/UsuarioContext";
 import { formatarPercentual } from "@/lib/format";
-import type { Localizacao, PrecoMercadoLocal, IndicadorMercado } from "@/types/dominio";
+import { LABEL_TIPO_PONTO_INTERESSE } from "@/types/dominio";
+import type { Localizacao, PrecoMercadoLocal, IndicadorMercado, PontoInteresse } from "@/types/dominio";
+import { corPorFaixaPreco } from "@/lib/colorScale";
 
 const MapaCidade = dynamic(() => import("@/components/regioes/MapaCidade").then((m) => m.MapaCidade), {
   ssr: false,
@@ -34,6 +38,12 @@ export default function RegioesPage() {
   const [ipcaHistorico, setIpcaHistorico] = useState<IndicadorMercado[]>([]);
   const [geocodificando, setGeocodificando] = useState(false);
   const [progressoGeocodificacao, setProgressoGeocodificacao] = useState<string | null>(null);
+  const [pontosInteresse, setPontosInteresse] = useState<PontoInteresse[]>([]);
+  const [modalPontoInteresseAberto, setModalPontoInteresseAberto] = useState<"novo" | PontoInteresse | null>(null);
+  const [paraExcluirPonto, setParaExcluirPonto] = useState<PontoInteresse | null>(null);
+  const [excluindoPonto, setExcluindoPonto] = useState(false);
+  const [geocodificandoPontos, setGeocodificandoPontos] = useState(false);
+  const [progressoPontos, setProgressoPontos] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     const res = await fetch("/api/localizacoes");
@@ -73,6 +83,60 @@ export default function RegioesPage() {
     () => bairrosDaCidade.filter((b) => b.latitude === null || b.longitude === null),
     [bairrosDaCidade]
   );
+
+  const pontosInteresseComCoordenada = useMemo(
+    () => pontosInteresse.filter((p) => p.latitude !== null && p.longitude !== null),
+    [pontosInteresse]
+  );
+  const pontosInteresseSemCoordenada = useMemo(
+    () => pontosInteresse.filter((p) => p.latitude === null || p.longitude === null),
+    [pontosInteresse]
+  );
+
+  const carregarPontosInteresse = useCallback(async () => {
+    if (!nivelAtual || nivelAtual.tipo !== "cidade") {
+      setPontosInteresse([]);
+      return;
+    }
+    const res = await fetch(`/api/pontos-interesse?cidadeId=${nivelAtual.id}`);
+    const data = await res.json();
+    setPontosInteresse(data.pontosInteresse ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nivelAtual?.id, nivelAtual?.tipo]);
+
+  useEffect(() => {
+    void Promise.resolve().then(carregarPontosInteresse);
+  }, [carregarPontosInteresse]);
+
+  async function geocodificarPontosSemCoordenada() {
+    setGeocodificandoPontos(true);
+    let falhas = 0;
+    for (let i = 0; i < pontosInteresseSemCoordenada.length; i++) {
+      const ponto = pontosInteresseSemCoordenada[i];
+      setProgressoPontos(`Buscando ${i + 1} de ${pontosInteresseSemCoordenada.length}: ${ponto.nome}...`);
+      try {
+        const res = await fetch(`/api/pontos-interesse/${ponto.id}/geocodificar`, { method: "POST" });
+        if (!res.ok) falhas++;
+      } catch {
+        falhas++;
+      }
+      if (i < pontosInteresseSemCoordenada.length - 1) await new Promise((r) => setTimeout(r, 1100));
+    }
+    setProgressoPontos(
+      falhas > 0 ? `Concluído com ${falhas} ponto(s) não encontrado(s) — edite manualmente depois.` : "Concluído."
+    );
+    setGeocodificandoPontos(false);
+    carregarPontosInteresse();
+  }
+
+  async function excluirPontoInteresse() {
+    if (!paraExcluirPonto) return;
+    setExcluindoPonto(true);
+    await fetch(`/api/pontos-interesse/${paraExcluirPonto.id}`, { method: "DELETE" });
+    setExcluindoPonto(false);
+    setParaExcluirPonto(null);
+    carregarPontosInteresse();
+  }
 
   async function geocodificarBairrosSemCoordenada() {
     setGeocodificando(true);
@@ -135,6 +199,28 @@ export default function RegioesPage() {
     })
     .filter((x): x is ItemRankingBairro => x !== null)
     .sort((a, b) => b.precoM2 - a.precoM2);
+
+  const precoM2PorBairro = new Map(rankingBairros.map((r) => [r.id, r.precoM2]));
+  const pontosMapaComCor = useMemo(() => {
+    const precos = pontosMapa.map((p) => precoM2PorBairro.get(p.id)).filter((v): v is number => v !== undefined);
+    if (precos.length < 2) return pontosMapa.map((p) => ({ ...p, cor: "#1d4ed8" }));
+    const min = Math.min(...precos);
+    const max = Math.max(...precos);
+    return pontosMapa.map((p) => {
+      const preco = precoM2PorBairro.get(p.id);
+      if (preco === undefined || max === min) return { ...p, cor: "#1d4ed8" };
+      return { ...p, cor: corPorFaixaPreco((preco - min) / (max - min)) };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pontosMapa, rankingBairros]);
+
+  const pontosInteresseMapa = pontosInteresseComCoordenada.map((p) => ({
+    id: p.id,
+    nome: p.nome,
+    tipo: p.tipo,
+    latitude: p.latitude!,
+    longitude: p.longitude!,
+  }));
 
   const serieVariacaoCidade = useMemo(() => {
     if (!nivelAtual || nivelAtual.tipo !== "cidade") return [];
@@ -199,24 +285,82 @@ export default function RegioesPage() {
       {nivelAtual?.tipo === "cidade" && bairrosDaCidade.length > 0 && (
         <div className="mb-8">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Mapa da cidade</h2>
-            {editavel && bairrosSemCoordenada.length > 0 && (
-              <Button variant="outline" onClick={geocodificarBairrosSemCoordenada} disabled={geocodificando}>
-                <LocateFixed size={16} />
-                {geocodificando
-                  ? "Buscando..."
-                  : `Buscar coordenadas dos bairros sem localização (${bairrosSemCoordenada.length})`}
-              </Button>
-            )}
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+              Mapa da cidade (cor pelo preço/m² do bairro)
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {editavel && (
+                <Button variant="outline" onClick={() => setModalPontoInteresseAberto("novo")}>
+                  <Building2 size={16} /> Novo ponto de interesse
+                </Button>
+              )}
+              {editavel && bairrosSemCoordenada.length > 0 && (
+                <Button variant="outline" onClick={geocodificarBairrosSemCoordenada} disabled={geocodificando}>
+                  <LocateFixed size={16} />
+                  {geocodificando
+                    ? "Buscando..."
+                    : `Buscar coordenadas dos bairros sem localização (${bairrosSemCoordenada.length})`}
+                </Button>
+              )}
+            </div>
           </div>
           {progressoGeocodificacao && <p className="mb-3 text-sm text-slate-500">{progressoGeocodificacao}</p>}
           {pontosMapa.length === 0 ? (
-            <p className="text-sm text-slate-400">
+            <p className="mb-4 text-sm text-slate-400">
               Nenhum bairro com coordenadas ainda. {editavel && "Use o botão acima para buscar automaticamente."}
             </p>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-gray-200">
-              <MapaCidade pontos={pontosMapa} />
+            <div className="mb-4 overflow-hidden rounded-2xl border border-gray-200">
+              <MapaCidade pontos={pontosMapaComCor} pontosInteresse={pontosInteresseMapa} />
+            </div>
+          )}
+
+          {pontosInteresse.length > 0 && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-4">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Pontos de interesse (infraestrutura futura)
+                </h3>
+                {editavel && pontosInteresseSemCoordenada.length > 0 && (
+                  <Button variant="outline" onClick={geocodificarPontosSemCoordenada} disabled={geocodificandoPontos}>
+                    <LocateFixed size={14} />
+                    {geocodificandoPontos ? "Buscando..." : `Buscar coordenadas (${pontosInteresseSemCoordenada.length})`}
+                  </Button>
+                )}
+              </div>
+              {progressoPontos && <p className="mb-2 text-xs text-slate-500">{progressoPontos}</p>}
+              <ul className="divide-y divide-gray-100 text-sm">
+                {pontosInteresse.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-2 py-2">
+                    <div>
+                      <span className="font-medium text-slate-900">{p.nome}</span>{" "}
+                      <span className="text-xs text-slate-500">
+                        · {LABEL_TIPO_PONTO_INTERESSE[p.tipo as keyof typeof LABEL_TIPO_PONTO_INTERESSE] ?? p.tipo}
+                        {p.previsao_conclusao && ` · previsão ${p.previsao_conclusao}`}
+                        {p.latitude === null && " · sem coordenada"}
+                      </span>
+                    </div>
+                    {editavel && (
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setModalPontoInteresseAberto(p)}
+                          className="rounded-lg p-1 text-slate-400 hover:bg-gray-100 hover:text-slate-700"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setParaExcluirPonto(p)}
+                          className="rounded-lg p-1 text-red-400 hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
@@ -309,6 +453,32 @@ export default function RegioesPage() {
           />
         </Modal>
       )}
+
+      {nivelAtual?.tipo === "cidade" && (
+        <Modal
+          aberto={modalPontoInteresseAberto !== null}
+          titulo={modalPontoInteresseAberto === "novo" ? "Novo ponto de interesse" : "Editar ponto de interesse"}
+          onFechar={() => setModalPontoInteresseAberto(null)}
+        >
+          <PontoInteresseForm
+            cidadeId={nivelAtual.id}
+            pontoInteresse={modalPontoInteresseAberto === "novo" ? undefined : (modalPontoInteresseAberto ?? undefined)}
+            onSucesso={() => {
+              setModalPontoInteresseAberto(null);
+              carregarPontosInteresse();
+            }}
+          />
+        </Modal>
+      )}
+
+      <ConfirmDialog
+        aberto={paraExcluirPonto !== null}
+        titulo="Excluir ponto de interesse"
+        descricao={`Tem certeza que deseja excluir "${paraExcluirPonto?.nome}"?`}
+        confirmando={excluindoPonto}
+        onConfirmar={excluirPontoInteresse}
+        onCancelar={() => setParaExcluirPonto(null)}
+      />
     </div>
   );
 }
