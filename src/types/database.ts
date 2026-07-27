@@ -14,347 +14,300 @@ export type Database = {
   }
   public: {
     Tables: {
-      admins: {
+      cenario_macro: {
         Row: {
-          created_at: string
+          criado_em: string
+          criado_por: string | null
           id: string
-          nome: string | null
+          texto: string
         }
         Insert: {
-          created_at?: string
-          id: string
-          nome?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          texto: string
         }
         Update: {
-          created_at?: string
+          criado_em?: string
+          criado_por?: string | null
           id?: string
-          nome?: string | null
-        }
-        Relationships: []
-      }
-      alertas: {
-        Row: {
-          created_at: string
-          empreendimento_id: string | null
-          id: string
-          lido: boolean
-          mensagem: string
-          perfil_id: string
-          tipo: string
-          titulo: string
-        }
-        Insert: {
-          created_at?: string
-          empreendimento_id?: string | null
-          id?: string
-          lido?: boolean
-          mensagem: string
-          perfil_id: string
-          tipo: string
-          titulo: string
-        }
-        Update: {
-          created_at?: string
-          empreendimento_id?: string | null
-          id?: string
-          lido?: boolean
-          mensagem?: string
-          perfil_id?: string
-          tipo?: string
-          titulo?: string
+          texto?: string
         }
         Relationships: [
           {
-            foreignKeyName: "alertas_empreendimento_id_fkey"
+            foreignKeyName: "cenario_macro_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cliente_imovel_interesse: {
+        Row: {
+          cliente_id: string
+          data_interesse: string
+          empreendimento_id: string
+        }
+        Insert: {
+          cliente_id: string
+          data_interesse?: string
+          empreendimento_id: string
+        }
+        Update: {
+          cliente_id?: string
+          data_interesse?: string
+          empreendimento_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_imovel_interesse_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_imovel_interesse_empreendimento_id_fkey"
             columns: ["empreendimento_id"]
             isOneToOne: false
             referencedRelation: "empreendimentos"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "alertas_perfil_id_fkey"
-            columns: ["perfil_id"]
-            isOneToOne: false
-            referencedRelation: "perfis"
-            referencedColumns: ["id"]
-          },
         ]
       }
-      bairros: {
+      clientes: {
         Row: {
-          cidade: string
+          corretor_responsavel_id: string | null
           created_at: string
-          densidade_demografica: number | null
-          empregabilidade_regional: string | null
-          estado: string
+          email: string | null
+          estrategia_saida: string | null
+          etapa_funil: string
+          forma_pagamento_pretendida: string | null
           id: string
           nome: string
-          plano_diretor_url: string | null
-          populacao: number | null
-          renda_media: number | null
-          ultima_revisao_manual: string | null
+          orcamento_max: number | null
+          orcamento_min: number | null
+          origem_lead: string | null
+          parcela_maxima_mensal: number | null
+          perfil: string | null
+          renda_informada: number | null
+          telefone: string | null
           updated_at: string
-          zoneamento: string | null
+          valor_entrada_disponivel: number | null
         }
         Insert: {
-          cidade?: string
+          corretor_responsavel_id?: string | null
           created_at?: string
-          densidade_demografica?: number | null
-          empregabilidade_regional?: string | null
-          estado?: string
+          email?: string | null
+          estrategia_saida?: string | null
+          etapa_funil?: string
+          forma_pagamento_pretendida?: string | null
           id?: string
           nome: string
-          plano_diretor_url?: string | null
-          populacao?: number | null
-          renda_media?: number | null
-          ultima_revisao_manual?: string | null
+          orcamento_max?: number | null
+          orcamento_min?: number | null
+          origem_lead?: string | null
+          parcela_maxima_mensal?: number | null
+          perfil?: string | null
+          renda_informada?: number | null
+          telefone?: string | null
           updated_at?: string
-          zoneamento?: string | null
+          valor_entrada_disponivel?: number | null
         }
         Update: {
-          cidade?: string
+          corretor_responsavel_id?: string | null
           created_at?: string
-          densidade_demografica?: number | null
-          empregabilidade_regional?: string | null
-          estado?: string
+          email?: string | null
+          estrategia_saida?: string | null
+          etapa_funil?: string
+          forma_pagamento_pretendida?: string | null
           id?: string
           nome?: string
-          plano_diretor_url?: string | null
-          populacao?: number | null
-          renda_media?: number | null
-          ultima_revisao_manual?: string | null
+          orcamento_max?: number | null
+          orcamento_min?: number | null
+          origem_lead?: string | null
+          parcela_maxima_mensal?: number | null
+          perfil?: string | null
+          renda_informada?: number | null
+          telefone?: string | null
           updated_at?: string
-          zoneamento?: string | null
+          valor_entrada_disponivel?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_corretor_responsavel_id_fkey"
+            columns: ["corretor_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      construtoras: {
+        Row: {
+          ano_fundacao: number | null
+          cnpj: string | null
+          created_at: string
+          id: string
+          nome: string
+          reputacao_score: number | null
+          status_certidoes: string
+          updated_at: string
+        }
+        Insert: {
+          ano_fundacao?: number | null
+          cnpj?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          reputacao_score?: number | null
+          status_certidoes?: string
+          updated_at?: string
+        }
+        Update: {
+          ano_fundacao?: number | null
+          cnpj?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          reputacao_score?: number | null
+          status_certidoes?: string
+          updated_at?: string
         }
         Relationships: []
-      }
-      calibracao: {
-        Row: {
-          created_at: string
-          empreendimento_id: string
-          id: string
-          meses_depois: number
-          observacoes: string | null
-          projecao_renda: number | null
-          projecao_valorizacao_pct: number | null
-          renda_realizada: number | null
-          selo_confianca: number | null
-          valorizacao_realizada_pct: number | null
-        }
-        Insert: {
-          created_at?: string
-          empreendimento_id: string
-          id?: string
-          meses_depois: number
-          observacoes?: string | null
-          projecao_renda?: number | null
-          projecao_valorizacao_pct?: number | null
-          renda_realizada?: number | null
-          selo_confianca?: number | null
-          valorizacao_realizada_pct?: number | null
-        }
-        Update: {
-          created_at?: string
-          empreendimento_id?: string
-          id?: string
-          meses_depois?: number
-          observacoes?: string | null
-          projecao_renda?: number | null
-          projecao_valorizacao_pct?: number | null
-          renda_realizada?: number | null
-          selo_confianca?: number | null
-          valorizacao_realizada_pct?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "calibracao_empreendimento_id_fkey"
-            columns: ["empreendimento_id"]
-            isOneToOne: false
-            referencedRelation: "empreendimentos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cenarios: {
-        Row: {
-          calculado_em: string
-          empreendimento_id: string
-          id: string
-          parametros: Json
-          renda_projetada_mensal: number | null
-          simulacoes: number
-          tipo: string
-          valorizacao_projetada_pct: number
-        }
-        Insert: {
-          calculado_em?: string
-          empreendimento_id: string
-          id?: string
-          parametros?: Json
-          renda_projetada_mensal?: number | null
-          simulacoes?: number
-          tipo: string
-          valorizacao_projetada_pct: number
-        }
-        Update: {
-          calculado_em?: string
-          empreendimento_id?: string
-          id?: string
-          parametros?: Json
-          renda_projetada_mensal?: number | null
-          simulacoes?: number
-          tipo?: string
-          valorizacao_projetada_pct?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cenarios_empreendimento_id_fkey"
-            columns: ["empreendimento_id"]
-            isOneToOne: false
-            referencedRelation: "empreendimentos"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       empreendimentos: {
         Row: {
-          aluguel_estimado: number | null
-          area_m2: number | null
           ativo: boolean
           bairro_id: string | null
+          construtora_id: string | null
           created_at: string
           data_entrega_prevista: string | null
-          due_diligence_ok: boolean | null
-          endereco: string | null
-          fonte_dados: Json
+          data_entrega_real: string | null
+          data_lancamento: string | null
           id: string
-          incorporadora: string | null
-          iptu_anual: number | null
+          imagem_url: string | null
+          indice_correcao_obra: string
+          indice_correcao_pos_entrega: string
+          metragem_privativa: number | null
+          metragem_total: number | null
           nome: string
-          preco: number
-          quartos: number | null
-          status_obra: string | null
-          tipo: string
+          observacao_valorizacao: string | null
+          percentual_vendido: number | null
+          preco_m2: number | null
+          preco_total: number
+          status: string
+          unidades_disponiveis: number
+          unidades_totais: number
           updated_at: string
-          vagas: number | null
-          valor_condominio: number | null
-          valor_venal: number | null
         }
         Insert: {
-          aluguel_estimado?: number | null
-          area_m2?: number | null
           ativo?: boolean
           bairro_id?: string | null
+          construtora_id?: string | null
           created_at?: string
           data_entrega_prevista?: string | null
-          due_diligence_ok?: boolean | null
-          endereco?: string | null
-          fonte_dados?: Json
+          data_entrega_real?: string | null
+          data_lancamento?: string | null
           id?: string
-          incorporadora?: string | null
-          iptu_anual?: number | null
+          imagem_url?: string | null
+          indice_correcao_obra?: string
+          indice_correcao_pos_entrega?: string
+          metragem_privativa?: number | null
+          metragem_total?: number | null
           nome: string
-          preco: number
-          quartos?: number | null
-          status_obra?: string | null
-          tipo: string
+          observacao_valorizacao?: string | null
+          percentual_vendido?: number | null
+          preco_m2?: number | null
+          preco_total: number
+          status?: string
+          unidades_disponiveis?: number
+          unidades_totais?: number
           updated_at?: string
-          vagas?: number | null
-          valor_condominio?: number | null
-          valor_venal?: number | null
         }
         Update: {
-          aluguel_estimado?: number | null
-          area_m2?: number | null
           ativo?: boolean
           bairro_id?: string | null
+          construtora_id?: string | null
           created_at?: string
           data_entrega_prevista?: string | null
-          due_diligence_ok?: boolean | null
-          endereco?: string | null
-          fonte_dados?: Json
+          data_entrega_real?: string | null
+          data_lancamento?: string | null
           id?: string
-          incorporadora?: string | null
-          iptu_anual?: number | null
+          imagem_url?: string | null
+          indice_correcao_obra?: string
+          indice_correcao_pos_entrega?: string
+          metragem_privativa?: number | null
+          metragem_total?: number | null
           nome?: string
-          preco?: number
-          quartos?: number | null
-          status_obra?: string | null
-          tipo?: string
+          observacao_valorizacao?: string | null
+          percentual_vendido?: number | null
+          preco_m2?: number | null
+          preco_total?: number
+          status?: string
+          unidades_disponiveis?: number
+          unidades_totais?: number
           updated_at?: string
-          vagas?: number | null
-          valor_condominio?: number | null
-          valor_venal?: number | null
         }
         Relationships: [
           {
             foreignKeyName: "empreendimentos_bairro_id_fkey"
             columns: ["bairro_id"]
             isOneToOne: false
-            referencedRelation: "bairros"
+            referencedRelation: "localizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empreendimentos_construtora_id_fkey"
+            columns: ["construtora_id"]
+            isOneToOne: false
+            referencedRelation: "construtoras"
             referencedColumns: ["id"]
           },
         ]
       }
-      financiamento_simulacoes: {
+      favoritos: {
         Row: {
           created_at: string
           empreendimento_id: string
-          id: string
-          num_parcelas: number
-          perfil_id: string | null
-          resultado: Json
-          sistema_amortizacao: string
-          taxa_juros_anual: number
-          valor_entrada: number
+          usuario_id: string
         }
         Insert: {
           created_at?: string
           empreendimento_id: string
-          id?: string
-          num_parcelas: number
-          perfil_id?: string | null
-          resultado: Json
-          sistema_amortizacao: string
-          taxa_juros_anual: number
-          valor_entrada: number
+          usuario_id: string
         }
         Update: {
           created_at?: string
           empreendimento_id?: string
-          id?: string
-          num_parcelas?: number
-          perfil_id?: string | null
-          resultado?: Json
-          sistema_amortizacao?: string
-          taxa_juros_anual?: number
-          valor_entrada?: number
+          usuario_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "financiamento_simulacoes_empreendimento_id_fkey"
+            foreignKeyName: "favoritos_empreendimento_id_fkey"
             columns: ["empreendimento_id"]
             isOneToOne: false
             referencedRelation: "empreendimentos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "financiamento_simulacoes_perfil_id_fkey"
-            columns: ["perfil_id"]
+            foreignKeyName: "favoritos_usuario_id_fkey"
+            columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "perfis"
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
       }
-      macro_dados: {
+      indicadores_mercado: {
         Row: {
           created_at: string
           data_referencia: string
           fonte: string
           id: string
-          indicador: string
           raw: Json | null
+          tipo: string
           valor: number
         }
         Insert: {
@@ -362,8 +315,8 @@ export type Database = {
           data_referencia: string
           fonte: string
           id?: string
-          indicador: string
           raw?: Json | null
+          tipo: string
           valor: number
         }
         Update: {
@@ -371,185 +324,344 @@ export type Database = {
           data_referencia?: string
           fonte?: string
           id?: string
-          indicador?: string
           raw?: Json | null
+          tipo?: string
           valor?: number
         }
         Relationships: []
       }
-      matches: {
+      interacoes: {
         Row: {
-          calculado_em: string
-          detalhes: Json
-          empreendimento_id: string
+          cliente_id: string
+          data: string
           id: string
-          perfil_id: string
-          score_encaixe: number
+          observacao: string | null
+          tipo: string
+          usuario_id: string | null
         }
         Insert: {
-          calculado_em?: string
-          detalhes?: Json
-          empreendimento_id: string
+          cliente_id: string
+          data?: string
           id?: string
-          perfil_id: string
-          score_encaixe: number
+          observacao?: string | null
+          tipo: string
+          usuario_id?: string | null
         }
         Update: {
-          calculado_em?: string
-          detalhes?: Json
-          empreendimento_id?: string
+          cliente_id?: string
+          data?: string
           id?: string
-          perfil_id?: string
-          score_encaixe?: number
+          observacao?: string | null
+          tipo?: string
+          usuario_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "matches_empreendimento_id_fkey"
+            foreignKeyName: "interacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interacoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      localizacoes: {
+        Row: {
+          area_km2: number | null
+          codigo_ibge: string | null
+          created_at: string
+          dados_ibge_atualizado_em: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nome: string
+          parent_id: string | null
+          pib_per_capita: number | null
+          pib_per_capita_ano: number | null
+          populacao: number | null
+          populacao_ano: number | null
+          tipo: string
+        }
+        Insert: {
+          area_km2?: number | null
+          codigo_ibge?: string | null
+          created_at?: string
+          dados_ibge_atualizado_em?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome: string
+          parent_id?: string | null
+          pib_per_capita?: number | null
+          pib_per_capita_ano?: number | null
+          populacao?: number | null
+          populacao_ano?: number | null
+          tipo: string
+        }
+        Update: {
+          area_km2?: number | null
+          codigo_ibge?: string | null
+          created_at?: string
+          dados_ibge_atualizado_em?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome?: string
+          parent_id?: string | null
+          pib_per_capita?: number | null
+          pib_per_capita_ano?: number | null
+          populacao?: number | null
+          populacao_ano?: number | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "localizacoes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "localizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pontos_interesse: {
+        Row: {
+          cidade_id: string
+          created_at: string
+          descricao: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nome: string
+          previsao_conclusao: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          cidade_id: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome: string
+          previsao_conclusao?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          cidade_id?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome?: string
+          previsao_conclusao?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pontos_interesse_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "localizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      precos_mercado_local: {
+        Row: {
+          created_at: string
+          data_referencia: string
+          id: string
+          localizacao_id: string | null
+          segmento: string
+          tipo: string
+          valor_m2: number
+          variacao_anual_12m: number | null
+          variacao_mensal: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_referencia: string
+          id?: string
+          localizacao_id?: string | null
+          segmento?: string
+          tipo: string
+          valor_m2: number
+          variacao_anual_12m?: number | null
+          variacao_mensal?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_referencia?: string
+          id?: string
+          localizacao_id?: string | null
+          segmento?: string
+          tipo?: string
+          valor_m2?: number
+          variacao_anual_12m?: number | null
+          variacao_mensal?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "precos_mercado_local_localizacao_id_fkey"
+            columns: ["localizacao_id"]
+            isOneToOne: false
+            referencedRelation: "localizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulacoes: {
+        Row: {
+          cliente_id: string | null
+          criado_em: string
+          criado_por: string | null
+          empreendimento_id: string
+          forma_pagamento: string
+          id: string
+          num_parcelas_obra: number | null
+          prazo_financiamento_meses: number | null
+          resultado: Json
+          sistema_amortizacao: string | null
+          taxa_juros_aplicada: number | null
+          valor_entrada: number | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          empreendimento_id: string
+          forma_pagamento: string
+          id?: string
+          num_parcelas_obra?: number | null
+          prazo_financiamento_meses?: number | null
+          resultado: Json
+          sistema_amortizacao?: string | null
+          taxa_juros_aplicada?: number | null
+          valor_entrada?: number | null
+        }
+        Update: {
+          cliente_id?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          empreendimento_id?: string
+          forma_pagamento?: string
+          id?: string
+          num_parcelas_obra?: number | null
+          prazo_financiamento_meses?: number | null
+          resultado?: Json
+          sistema_amortizacao?: string | null
+          taxa_juros_aplicada?: number | null
+          valor_entrada?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulacoes_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulacoes_empreendimento_id_fkey"
             columns: ["empreendimento_id"]
             isOneToOne: false
             referencedRelation: "empreendimentos"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      tabela_pagamento_padrao: {
+        Row: {
+          created_at: string
+          empreendimento_id: string
+          id: string
+          indice_correcao_aplicavel: string | null
+          offset_meses: number
+          tipo_parcela: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          empreendimento_id: string
+          id?: string
+          indice_correcao_aplicavel?: string | null
+          offset_meses?: number
+          tipo_parcela: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          empreendimento_id?: string
+          id?: string
+          indice_correcao_aplicavel?: string | null
+          offset_meses?: number
+          tipo_parcela?: string
+          valor?: number
+        }
+        Relationships: [
           {
-            foreignKeyName: "matches_perfil_id_fkey"
-            columns: ["perfil_id"]
+            foreignKeyName: "tabela_pagamento_padrao_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
             isOneToOne: false
-            referencedRelation: "perfis"
+            referencedRelation: "empreendimentos"
             referencedColumns: ["id"]
           },
         ]
       }
-      perfis: {
+      usuarios: {
         Row: {
-          capital_disponivel: number | null
+          ativo: boolean
           created_at: string
+          email: string | null
           id: string
-          liquidez: string
           nome: string | null
-          objetivo: string
-          onboarding_completo: boolean
-          prazo: string
-          refinamento: Json
-          tolerancia_risco: string
-          updated_at: string
-          user_id: string
+          papel: string
         }
         Insert: {
-          capital_disponivel?: number | null
+          ativo?: boolean
           created_at?: string
-          id?: string
-          liquidez: string
+          email?: string | null
+          id: string
           nome?: string | null
-          objetivo: string
-          onboarding_completo?: boolean
-          prazo: string
-          refinamento?: Json
-          tolerancia_risco: string
-          updated_at?: string
-          user_id: string
+          papel?: string
         }
         Update: {
-          capital_disponivel?: number | null
+          ativo?: boolean
           created_at?: string
+          email?: string | null
           id?: string
-          liquidez?: string
           nome?: string | null
-          objetivo?: string
-          onboarding_completo?: boolean
-          prazo?: string
-          refinamento?: Json
-          tolerancia_risco?: string
-          updated_at?: string
-          user_id?: string
+          papel?: string
         }
         Relationships: []
-      }
-      scores: {
-        Row: {
-          calculado_em: string
-          detalhes: Json
-          empreendimento_id: string
-          id: string
-          pesos_versao: string
-          score_renda: number
-          score_valorizacao: number
-        }
-        Insert: {
-          calculado_em?: string
-          detalhes?: Json
-          empreendimento_id: string
-          id?: string
-          pesos_versao?: string
-          score_renda: number
-          score_valorizacao: number
-        }
-        Update: {
-          calculado_em?: string
-          detalhes?: Json
-          empreendimento_id?: string
-          id?: string
-          pesos_versao?: string
-          score_renda?: number
-          score_valorizacao?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "scores_empreendimento_id_fkey"
-            columns: ["empreendimento_id"]
-            isOneToOne: false
-            referencedRelation: "empreendimentos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      watchlist: {
-        Row: {
-          created_at: string
-          empreendimento_id: string
-          id: string
-          motivo_descarte: string | null
-          perfil_id: string
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          empreendimento_id: string
-          id?: string
-          motivo_descarte?: string | null
-          perfil_id: string
-          status: string
-        }
-        Update: {
-          created_at?: string
-          empreendimento_id?: string
-          id?: string
-          motivo_descarte?: string | null
-          perfil_id?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "watchlist_empreendimento_id_fkey"
-            columns: ["empreendimento_id"]
-            isOneToOne: false
-            referencedRelation: "empreendimentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "watchlist_perfil_id_fkey"
-            columns: ["perfil_id"]
-            isOneToOne: false
-            referencedRelation: "perfis"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      resetar_dados_mercado: { Args: never; Returns: undefined }
+      usuario_ativo: { Args: never; Returns: boolean }
+      usuario_papel: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

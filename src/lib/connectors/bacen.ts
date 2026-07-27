@@ -9,13 +9,28 @@ const SGS = {
   IPCA_MENSAL: 433, // IPCA, % a.m.
 } as const;
 
+const MESES_JANELA_ANUALIZACAO = 12;
+
 interface PontoSgs {
   data: string; // dd/MM/yyyy
   valor: string;
 }
 
-async function buscarSerieSgs(codigo: number, ultimosN: number): Promise<PontoSgs[]> {
-  const url = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${codigo}/dados/ultimos/${ultimosN}?formato=json`;
+type ParametrosBusca = { ultimosN: number } | { dataInicial: Date; dataFinal: Date };
+
+function formatarDataBr(data: Date): string {
+  return data.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+}
+
+/** Busca uma serie do SGS — pelos ultimos N pontos ou por um intervalo de datas. */
+async function buscarSerieSgs(codigo: number, params: ParametrosBusca): Promise<PontoSgs[]> {
+  const url =
+    "ultimosN" in params
+      ? `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${codigo}/dados/ultimos/${params.ultimosN}?formato=json`
+      : `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${codigo}/dados?formato=json&dataInicial=${formatarDataBr(
+          params.dataInicial
+        )}&dataFinal=${formatarDataBr(params.dataFinal)}`;
+
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`Bacen SGS ${codigo}: HTTP ${res.status}`);
   return res.json();
@@ -26,11 +41,30 @@ function dataBrParaIso(dataBr: string): string {
   return `${ano}-${mes}-${dia}`;
 }
 
-/** Anualiza uma serie de valores percentuais mensais compondo os ultimos 12 meses. */
-function anualizarMensal(pontos: PontoSgs[]): number {
-  const ultimos12 = pontos.slice(-12);
-  const acumulado = ultimos12.reduce((acc, p) => acc * (1 + Number(p.valor) / 100), 1);
+/** Anualiza uma janela de ate 12 pontos percentuais mensais compondo-os. */
+function anualizarJanela(pontos: PontoSgs[]): number {
+  const acumulado = pontos.reduce((acc, p) => acc * (1 + Number(p.valor) / 100), 1);
   return (acumulado - 1) * 100;
+}
+
+/**
+ * Converte uma serie mensal (% a.m.) em uma serie de indicador anualizado
+ * (trailing 12 meses) por ponto — precisa de `MESES_JANELA_ANUALIZACAO - 1`
+ * pontos extra antes do primeiro mes desejado para fechar a primeira janela.
+ */
+function anualizarSerieMensal(pontos: PontoSgs[]): PontoSgs[] {
+  const resultado: PontoSgs[] = [];
+  for (let i = MESES_JANELA_ANUALIZACAO - 1; i < pontos.length; i++) {
+    const janela = pontos.slice(i - (MESES_JANELA_ANUALIZACAO - 1), i + 1);
+    resultado.push({ data: pontos[i].data, valor: String(anualizarJanela(janela)) });
+  }
+  return resultado;
+}
+
+function subtrairMeses(data: Date, meses: number): Date {
+  const copia = new Date(data);
+  copia.setMonth(copia.getMonth() - meses);
+  return copia;
 }
 
 export interface IndicadorMacroColetado {
@@ -42,51 +76,54 @@ export interface IndicadorMacroColetado {
 }
 
 /**
- * Processo 2-4 / Camada de Integracao: busca Selic, CDI, IGP-M e IPCA no
- * Bacen SGS (sem necessidade de chave) e retorna os indicadores anualizados
- * prontos para gravar em macro_dados.
+ * Busca Selic, CDI, IGP-M e IPCA no Bacen SGS (sem necessidade de chave) e
+ * retorna os indicadores anualizados prontos para gravar em
+ * `indicadores_mercado`. Sem `intervalo`, traz só o ponto mais recente de
+ * cada série (uso do cron diário). Com `intervalo`, traz o histórico inteiro
+ * do período — um ponto por mês/evento disponível na janela.
  */
-export async function coletarIndicadoresBacen(): Promise<IndicadorMacroColetado[]> {
+export async function coletarIndicadoresBacen(intervalo?: {
+  dataInicial: Date;
+  dataFinal: Date;
+}): Promise<IndicadorMacroColetado[]> {
+  const paramsPontual: ParametrosBusca = intervalo ?? { ultimosN: 1 };
+  // IGP-M/IPCA precisam de 11 meses extra antes do inicio pedido para poder
+  // anualizar (janela movel de 12 meses) o primeiro ponto do intervalo.
+  const paramsMensal: ParametrosBusca = intervalo
+    ? { dataInicial: subtrairMeses(intervalo.dataInicial, MESES_JANELA_ANUALIZACAO - 1), dataFinal: intervalo.dataFinal }
+    : { ultimosN: MESES_JANELA_ANUALIZACAO };
+
   const [selic, cdi, igpm, ipca] = await Promise.all([
-    buscarSerieSgs(SGS.SELIC_META_ANUAL, 1),
-    buscarSerieSgs(SGS.CDI_ANUALIZADO, 1),
-    buscarSerieSgs(SGS.IGPM_MENSAL, 12),
-    buscarSerieSgs(SGS.IPCA_MENSAL, 12),
+    buscarSerieSgs(SGS.SELIC_META_ANUAL, paramsPontual),
+    buscarSerieSgs(SGS.CDI_ANUALIZADO, paramsPontual),
+    buscarSerieSgs(SGS.IGPM_MENSAL, paramsMensal),
+    buscarSerieSgs(SGS.IPCA_MENSAL, paramsMensal),
   ]);
 
-  const ultimoSelic = selic[selic.length - 1];
-  const ultimoCdi = cdi[cdi.length - 1];
-  const ultimoIgpm = igpm[igpm.length - 1];
-  const ultimoIpca = ipca[ipca.length - 1];
+  const igpmAnualizado = intervalo
+    ? anualizarSerieMensal(igpm)
+    : [{ data: igpm[igpm.length - 1].data, valor: String(anualizarJanela(igpm)) }];
+  const ipcaAnualizado = intervalo
+    ? anualizarSerieMensal(ipca)
+    : [{ data: ipca[ipca.length - 1].data, valor: String(anualizarJanela(ipca)) }];
+
+  const paraColetado = (
+    pontos: PontoSgs[],
+    indicador: IndicadorMacroColetado["indicador"],
+    fonte: string
+  ): IndicadorMacroColetado[] =>
+    pontos.map((p) => ({
+      indicador,
+      valor: Number(p.valor) / 100,
+      dataReferencia: dataBrParaIso(p.data),
+      fonte,
+      raw: p,
+    }));
 
   return [
-    {
-      indicador: "selic",
-      valor: Number(ultimoSelic.valor) / 100,
-      dataReferencia: dataBrParaIso(ultimoSelic.data),
-      fonte: "bacen_sgs_432",
-      raw: ultimoSelic,
-    },
-    {
-      indicador: "cdi",
-      valor: Number(ultimoCdi.valor) / 100,
-      dataReferencia: dataBrParaIso(ultimoCdi.data),
-      fonte: "bacen_sgs_4391",
-      raw: ultimoCdi,
-    },
-    {
-      indicador: "igpm",
-      valor: anualizarMensal(igpm) / 100,
-      dataReferencia: dataBrParaIso(ultimoIgpm.data),
-      fonte: "bacen_sgs_189_anualizado",
-      raw: igpm,
-    },
-    {
-      indicador: "ipca",
-      valor: anualizarMensal(ipca) / 100,
-      dataReferencia: dataBrParaIso(ultimoIpca.data),
-      fonte: "bacen_sgs_433_anualizado",
-      raw: ipca,
-    },
+    ...paraColetado(selic, "selic", "bacen_sgs_432"),
+    ...paraColetado(cdi, "cdi", "bacen_sgs_4391"),
+    ...paraColetado(igpmAnualizado, "igpm", "bacen_sgs_189_anualizado"),
+    ...paraColetado(ipcaAnualizado, "ipca", "bacen_sgs_433_anualizado"),
   ];
 }

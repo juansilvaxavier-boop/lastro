@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lastro — Análise de Investimento Imobiliário",
-  description: "Sistema de análise de investimento imobiliário para Rio Preto/SP",
+  title: "Lastro — CRM Imobiliário",
+  description: "Tendências, imóveis, clientes, construtoras, regiões e dados de mercado num só lugar.",
 };
 
 export default function RootLayout({

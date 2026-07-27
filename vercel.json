@@ -4,9 +4,6 @@
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_zpoNfKCFUaC6K6Zf0nRsEA_O9rFJLJv"
   },
   "crons": [
-    { "path": "/api/jobs/sync-bacen", "schedule": "0 6 * * *" },
-    { "path": "/api/jobs/sync-ibge", "schedule": "0 6 1 * *" },
-    { "path": "/api/jobs/sync-cvm", "schedule": "0 7 2 * *" },
-    { "path": "/api/jobs/recalcular", "schedule": "0 8 * * *" }
+    { "path": "/api/jobs/sync-bacen", "schedule": "0 6 * * *" }
   ]
 }
