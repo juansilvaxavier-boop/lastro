@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, MapPin, ChevronRight, Pencil } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Plus, MapPin, ChevronRight, Pencil, LocateFixed } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { CardGridSkeleton } from "@/components/ui/Skeleton";
@@ -16,6 +17,10 @@ import { useUsuario, podeEditar } from "@/components/UsuarioContext";
 import { formatarPercentual } from "@/lib/format";
 import type { Localizacao, PrecoMercadoLocal, IndicadorMercado } from "@/types/dominio";
 
+const MapaCidade = dynamic(() => import("@/components/regioes/MapaCidade").then((m) => m.MapaCidade), {
+  ssr: false,
+});
+
 export default function RegioesPage() {
   const usuario = useUsuario();
   const editavel = podeEditar(usuario.papel);
@@ -27,6 +32,8 @@ export default function RegioesPage() {
   const [precos, setPrecos] = useState<PrecoMercadoLocal[]>([]);
   const [precosCidade, setPrecosCidade] = useState<PrecoMercadoLocal[]>([]);
   const [ipcaHistorico, setIpcaHistorico] = useState<IndicadorMercado[]>([]);
+  const [geocodificando, setGeocodificando] = useState(false);
+  const [progressoGeocodificacao, setProgressoGeocodificacao] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     const res = await fetch("/api/localizacoes");
@@ -54,6 +61,41 @@ export default function RegioesPage() {
     () => (nivelAtual?.tipo === "cidade" ? filhos.filter((f) => f.tipo === "bairro") : []),
     [filhos, nivelAtual]
   );
+
+  const pontosMapa = useMemo(
+    () =>
+      bairrosDaCidade
+        .filter((b) => b.latitude !== null && b.longitude !== null)
+        .map((b) => ({ id: b.id, nome: b.nome, latitude: b.latitude!, longitude: b.longitude! })),
+    [bairrosDaCidade]
+  );
+  const bairrosSemCoordenada = useMemo(
+    () => bairrosDaCidade.filter((b) => b.latitude === null || b.longitude === null),
+    [bairrosDaCidade]
+  );
+
+  async function geocodificarBairrosSemCoordenada() {
+    setGeocodificando(true);
+    let falhas = 0;
+    for (let i = 0; i < bairrosSemCoordenada.length; i++) {
+      const bairro = bairrosSemCoordenada[i];
+      setProgressoGeocodificacao(`Buscando ${i + 1} de ${bairrosSemCoordenada.length}: ${bairro.nome}...`);
+      try {
+        const res = await fetch(`/api/localizacoes/${bairro.id}/geocodificar`, { method: "POST" });
+        if (!res.ok) falhas++;
+      } catch {
+        falhas++;
+      }
+      if (i < bairrosSemCoordenada.length - 1) await new Promise((r) => setTimeout(r, 1100));
+    }
+    setProgressoGeocodificacao(
+      falhas > 0
+        ? `Concluído com ${falhas} bairro(s) não encontrado(s) — tente editá-los manualmente depois.`
+        : "Concluído."
+    );
+    setGeocodificando(false);
+    carregar();
+  }
 
   useEffect(() => {
     if (nivelAtual && (nivelAtual.tipo === "bairro" || nivelAtual.tipo === "cidade")) {
@@ -152,6 +194,32 @@ export default function RegioesPage() {
 
       {nivelAtual?.tipo === "cidade" && (
         <InfoSocioeconomica localizacao={nivelAtual} editavel={editavel} onAtualizado={carregar} />
+      )}
+
+      {nivelAtual?.tipo === "cidade" && bairrosDaCidade.length > 0 && (
+        <div className="mb-8">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Mapa da cidade</h2>
+            {editavel && bairrosSemCoordenada.length > 0 && (
+              <Button variant="outline" onClick={geocodificarBairrosSemCoordenada} disabled={geocodificando}>
+                <LocateFixed size={16} />
+                {geocodificando
+                  ? "Buscando..."
+                  : `Buscar coordenadas dos bairros sem localização (${bairrosSemCoordenada.length})`}
+              </Button>
+            )}
+          </div>
+          {progressoGeocodificacao && <p className="mb-3 text-sm text-slate-500">{progressoGeocodificacao}</p>}
+          {pontosMapa.length === 0 ? (
+            <p className="text-sm text-slate-400">
+              Nenhum bairro com coordenadas ainda. {editavel && "Use o botão acima para buscar automaticamente."}
+            </p>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-gray-200">
+              <MapaCidade pontos={pontosMapa} />
+            </div>
+          )}
+        </div>
       )}
 
       {nivelAtual && (nivelAtual.tipo === "bairro" || nivelAtual.tipo === "cidade") && (precoVenda || precoAluguel) && (

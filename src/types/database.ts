@@ -338,6 +338,8 @@ export type Database = {
           created_at: string
           dados_ibge_atualizado_em: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           nome: string
           parent_id: string | null
           pib_per_capita: number | null
@@ -352,6 +354,8 @@ export type Database = {
           created_at?: string
           dados_ibge_atualizado_em?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome: string
           parent_id?: string | null
           pib_per_capita?: number | null
@@ -366,6 +370,8 @@ export type Database = {
           created_at?: string
           dados_ibge_atualizado_em?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome?: string
           parent_id?: string | null
           pib_per_capita?: number | null

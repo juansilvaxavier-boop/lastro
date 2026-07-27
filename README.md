@@ -19,6 +19,9 @@ Tudo em TypeScript, um repo, um deploy:
   prazo, ROI acumulado, projeção de valor de revenda
 - **Conector de dados** (`src/lib/connectors/bacen.ts`) — Bacen (SGS): Selic, CDI,
   IGP-M, IPCA
+- **Mapa de bairros** (`src/components/regioes/MapaCidade.tsx`, Leaflet +
+  OpenStreetMap, sem chave de API) — coordenadas buscadas automaticamente via
+  geocodificação gratuita (Nominatim, `src/lib/connectors/geocodificacao.ts`)
 - **Assistente de IA** (`src/app/api/assistente`, `src/lib/assistente`) — chat
   interno (texto ou voz) construído com a API da Anthropic (`@anthropic-ai/sdk`,
   modelo `claude-opus-5`), com ferramentas para consultar e criar/editar dados
@@ -111,3 +114,9 @@ O primeiro usuário precisa ser inserido manualmente em `usuarios` (papel
 - Não foi possível testar o assistente de IA neste ambiente de desenvolvimento
   (rede do sandbox bloqueia chamadas à API da Anthropic) — validar manualmente
   após o deploy, com `ANTHROPIC_API_KEY` configurada na Vercel.
+- A geocodificação de bairros (Nominatim) também não pôde ser testada neste
+  ambiente pelo mesmo motivo (rede do sandbox bloqueia o domínio) — validar
+  manualmente após o deploy. Nominatim é gratuito mas tem limite de 1
+  requisição/segundo e pode não encontrar bairros com nomes muito genéricos ou
+  ambíguos; nesses casos o bairro fica sem coordenada (não aparece no mapa) até
+  ser corrigido manualmente.
